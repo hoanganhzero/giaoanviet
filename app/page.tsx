@@ -572,10 +572,13 @@ export default function Home() {
           }
           addedSectionCount += 1;
         };
-        const integratedProcedureLines = (labels: string[], includeWholeActivity = false) => plan.activities.flatMap((activity) => {
+        const integratedProcedureLines = (labels: string[], includeWholeActivity = false, indicatorCode = "") => plan.activities.flatMap((activity) => {
           const normalizedLabels = labels.map((label) => normalizeAnchorText(label));
           const procedure = activity.procedure || [];
-          const matchingSteps = procedure.filter((step) => normalizedLabels.some((label) => normalizeAnchorText(`${step.teacher} ${step.student} ${step.product}`).includes(label)));
+          const matchingSteps = procedure.filter((step) => {
+            const stepText = `${step.teacher} ${step.student} ${step.product}`;
+            return normalizedLabels.some((label) => normalizeAnchorText(stepText).includes(label)) && (!indicatorCode || stepText.includes(indicatorCode));
+          });
           if (!matchingSteps.length) return [];
           if (!includeWholeActivity) return matchingSteps.map((step) => {
             const combined = [step.teacher, step.student].filter(Boolean).join(" ");
@@ -589,10 +592,25 @@ export default function Home() {
             ...procedure.map((step) => `${step.step}: ${[step.teacher, step.student].filter(Boolean).join(" ")}`),
           ];
         });
+        const integrationAnchors = (activityCodes: string[]) => {
+          const activityCode = activityCodes.find((code) => /^[A-D]$/i.test(code))?.toUpperCase();
+          if (activityCode === "A") return ["hoạt động 1", "activity 1", "khởi động", "warm up", "mở đầu", "opening"];
+          if (activityCode === "C") return ["hoạt động 3", "activity 3", "luyện tập", "practice", "củng cố", "consolidation"];
+          if (activityCode === "D") return ["hoạt động 4", "activity 4", "vận dụng", "application"];
+          return ["hoạt động 2", "activity 2", "hình thành kiến thức", "knowledge formation"];
+        };
         if (enabled.includes("digital")) insertSection(englishDocument ? "Digital competence" : "Năng lực số", (plan.digitalCompetencyIndicators || []).map((item) => `${item.code}: ${item.indicator}`), ["năng lực đặc thù", "specific competencies", "năng lực", "competencies", "mục tiêu", "objectives"]);
-        if (enabled.includes("digital")) insertSection(englishDocument ? "Digital competence integration" : `Tích hợp năng lực số (${(plan.digitalCompetencyIndicators || []).map((item) => item.code).join(", ")})`, integratedProcedureLines(["Tích hợp năng lực số", "Digital competence integration"], false), ["bước 4 kết luận", "conclude and provide feedback", "hoạt động 2", "activity 2", "hình thành kiến thức", "knowledge formation"]);
+        if (enabled.includes("digital")) (plan.digitalCompetencyIndicators || []).forEach((item) => insertSection(
+          englishDocument ? `Digital competence integration (${item.code})` : `Tích hợp năng lực số (${item.code})`,
+          integratedProcedureLines(["Tích hợp năng lực số", "Digital competence integration"], false, item.code),
+          integrationAnchors(item.activityCodes),
+        ));
         if (enabled.includes("aiEducation")) insertSection(englishDocument ? "AI competence" : "Năng lực AI", (plan.aiCompetencyIndicators || []).map((item) => `${item.code}: ${item.indicator}`), ["năng lực đặc thù", "specific competencies", "năng lực", "competencies", "mục tiêu", "objectives"]);
-        if (enabled.includes("aiEducation")) insertSection(englishDocument ? "AI education integration" : `Tích hợp giáo dục AI (${(plan.aiCompetencyIndicators || []).map((item) => item.code).join(", ")})`, integratedProcedureLines(["Tích hợp giáo dục AI", "AI education integration"]), ["hoạt động 2", "activity 2", "hình thành kiến thức", "knowledge formation", "vận dụng", "application"]);
+        if (enabled.includes("aiEducation")) (plan.aiCompetencyIndicators || []).forEach((item) => insertSection(
+          englishDocument ? `AI education integration (${item.code})` : `Tích hợp giáo dục AI (${item.code})`,
+          integratedProcedureLines(["Tích hợp giáo dục AI", "AI education integration"], false, item.code),
+          integrationAnchors(item.activityCodes),
+        ));
         if (enabled.includes("defense")) insertSection(englishDocument ? "National defence and security integration" : "Tích hợp giáo dục quốc phòng và an ninh", integratedProcedureLines(["Tích hợp giáo dục quốc phòng và an ninh", "National defence and security integration"]), ["hoạt động 4", "activity 4", "vận dụng", "application"]);
         if (enabled.includes("inclusive")) insertSection(englishDocument ? "Learner support" : "Hỗ trợ học sinh", integratedProcedureLines(["Hỗ trợ học sinh", "Learner support"]), ["hoạt động 2", "activity 2", "hình thành kiến thức", "knowledge formation"]);
         if (enabled.includes("active")) insertSection(englishDocument ? "Teaching method" : "Phương pháp", integratedProcedureLines(["Phương pháp", "Teaching method"]), ["hoạt động 2", "activity 2", "hình thành kiến thức", "knowledge formation"]);

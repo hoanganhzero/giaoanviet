@@ -319,14 +319,14 @@ ${englishOutput ? "QUY TẮC NGÔN NGỮ TUYỆT ĐỐI: Môn học là Tiếng 
 8. Thể hiện rõ các nội dung tích hợp đã chọn; với timeline phải phân bổ thời gian nhất quán, với STEM phải có quy trình phù hợp, với mindmap/infographic phải mô tả sản phẩm trực quan khả thi.
 9. Nếu được yêu cầu, bổ sung tối thiểu 5 câu hỏi có đáp án, trò chơi có luật/cách chấm, năng lực số, giáo dục AI, GDQP&AN, hỗ trợ hòa nhập và kịch bản slide từ 8 đến 12 trang.
 10. Có phương pháp/kĩ thuật dạy học, kế hoạch kiểm tra đánh giá, nhiệm vụ tự học sau bài và ghi chú tích hợp. Không bịa văn bản pháp luật hoặc trích dẫn không chắc chắn.
-11. Nếu chọn năng lực số: ${ppctMatch.digital.length ? (englishOutput ? "dùng đúng toàn bộ mã Năng lực số đã đối chiếu từ PPCT và dịch chính xác biểu hiện sang tiếng Anh" : "dùng đúng toàn bộ mã và biểu hiện Năng lực số đã đối chiếu từ PPCT ở trên") : `AI tạo 3–6 chỉ báo thật sự phù hợp bài học; chỉ dùng mã đã xác nhận cho lớp ${grade}: ${digitalCodes}; không tự thêm hậu tố khác`}. Mỗi chỉ báo trong mảng dữ liệu phải ghi đúng miền năng lực, biểu hiện quan sát được, hoạt động A/B/C/D tạo minh chứng và công cụ đánh giá; trong tiến trình, toàn bộ mã được gộp vào một đoạn duy nhất. Nếu không chọn thì trả về mảng rỗng.
-12. Nếu chọn năng lực AI: ${ppctMatch.ai.length ? (englishOutput ? "dùng đúng toàn bộ mã Năng lực AI đã đối chiếu từ PPCT và dịch chính xác biểu hiện sang tiếng Anh" : "dùng đúng toàn bộ mã và biểu hiện Năng lực AI đã đối chiếu từ PPCT ở trên") : `AI tạo 2–5 chỉ báo phù hợp bài học; chỉ dùng mã có thật riêng của lớp ${grade} theo Quyết định 2422: ${aiCodes}`}. Không lấy mã của lớp khác và không tự tạo số thứ tự. Mỗi chỉ báo trong mảng dữ liệu phải gắn với hoạt động, minh chứng và công cụ đánh giá; trong tiến trình, toàn bộ mã được gộp vào một đoạn duy nhất. Nếu không chọn thì trả về mảng rỗng.
-13. Trường assessment của từng hoạt động chỉ mô tả cách đánh giá tự nhiên, không lặp lại mã chỉ báo Năng lực số hoặc Năng lực AI; các mã chỉ xuất hiện trong đoạn tích hợp duy nhất của tiến trình.
+11. Nếu chọn năng lực số: ${ppctMatch.digital.length ? (englishOutput ? "ưu tiên các mã Năng lực số đã đối chiếu từ PPCT và dịch chính xác biểu hiện sang tiếng Anh" : "ưu tiên các mã và biểu hiện Năng lực số đã đối chiếu từ PPCT ở trên") : `chỉ chọn những chỉ báo thật sự phù hợp bài học; chỉ dùng mã đã xác nhận cho lớp ${grade}: ${digitalCodes}; không tự thêm hậu tố khác`}. Mỗi mã là một chỉ báo độc lập, gắn với đúng một hoạt động A/B/C/D và không dùng chung hoạt động với mã năng lực khác. Nếu không chọn thì trả về mảng rỗng.
+12. Nếu chọn năng lực AI: ${ppctMatch.ai.length ? (englishOutput ? "ưu tiên các mã Năng lực AI đã đối chiếu từ PPCT và dịch chính xác biểu hiện sang tiếng Anh" : "ưu tiên các mã và biểu hiện Năng lực AI đã đối chiếu từ PPCT ở trên") : `chỉ chọn những chỉ báo phù hợp bài học; chỉ dùng mã có thật riêng của lớp ${grade} theo Quyết định 2422: ${aiCodes}`}. Không lấy mã của lớp khác và không tự tạo số thứ tự. Mỗi mã là một chỉ báo độc lập, gắn với đúng một hoạt động A/B/C/D và không dùng chung hoạt động với mã năng lực khác. Nếu tổng số mã Năng lực số và AI vượt quá số hoạt động, chỉ giữ tối đa bốn mã phù hợp trực tiếp nhất, không dồn nhiều mã vào một hoạt động. Nếu không chọn thì trả về mảng rỗng.
+13. Trường assessment của từng hoạt động chỉ mô tả cách đánh giá tự nhiên, không lặp lại mã chỉ báo Năng lực số hoặc Năng lực AI; mỗi mã chỉ xuất hiện trong một đoạn tích hợp riêng của tiến trình.
 14. Với môn Toán, Vật lí, Hóa học, Sinh học: mọi mục tiêu, nội dung, câu hỏi, đáp án và sản phẩm phải giữ đúng công thức, ký hiệu, chỉ số trên/dưới, vectơ, đơn vị và phương trình phản ứng. Ưu tiên Unicode tương thích trình duyệt và Word: x², aₙ, √, ∑, ∫, Δ, F⃗, v = s/t, H₂SO₄, 2H₂ + O₂ → 2H₂O, ADN, kiểu gen AaBb. Không dùng hình ảnh thay cho công thức.
 15. Nếu có nguồn đã khớp tên bài, trường sourceSynthesis phải rút ra đúng nội dung phục vụ Yêu cầu cần đạt: ý chính cốt lõi; công thức/kí hiệu; thí nghiệm hoặc thực hành; hướng dẫn bài tập; hình/sơ đồ minh họa nên dùng và vị trí chèn. Đây chỉ là dữ liệu nội bộ: phải phân bổ nội dung phù hợp vào mục tiêu, thiết bị và các hoạt động; KHÔNG tạo một mục riêng có tên “Nội dung cốt lõi đã đối chiếu”. Khi không có KHBD cũ/mẫu khớp bài, trường product của từng hoạt động phải ghi Sản phẩm dự kiến cụ thể dựa trên đúng bài trong SGK, đặc biệt Hoạt động B phải chứa các ý chính cần trình bày để đáp ứng Yêu cầu cần đạt. Không bịa chi tiết không có căn cứ và không lấy nội dung của bài khác.
 16. advancedContent phải tuân thủ từng lựa chọn: warmup chỉ có dữ liệu khi chọn Khởi động; timeline chỉ khi chọn Dòng thời gian; mindMap chỉ khi chọn Đồ họa thông tin/Sơ đồ tư duy; stemProcess chỉ khi chọn Bài học STEM; learningGame chỉ khi chọn Trò chơi học tập; defenseIntegration chỉ khi chọn Giáo dục quốc phòng và an ninh. Mục không chọn phải trả về mảng rỗng hoặc đối tượng rỗng.
 17. Nếu có KHBD cũ/mẫu đã khớp, nội dung mới phải bám bố cục, thứ tự mục và cách tổ chức của mẫu. Giữ nguyên các mục a) Mục tiêu, b) Nội dung, c) Sản phẩm, d) Tổ chức thực hiện; nội dung tích hợp phải hòa vào hoạt động phù hợp, không tạo phần thuyết minh kỹ thuật tách rời làm vỡ cấu trúc mẫu.
-18. Các mã Năng lực số được gộp thành đúng MỘT đoạn “Tích hợp năng lực số (các mã): …” tại Bước 1 – Chuyển giao nhiệm vụ của MỘT hoạt động phù hợp. Các mã Năng lực AI cũng được gộp thành đúng MỘT đoạn “Tích hợp giáo dục AI (các mã): …” tại Bước 1 – Chuyển giao nhiệm vụ của MỘT hoạt động phù hợp. Mỗi đoạn phải liền mạch, ngắn gọn, nêu rõ việc GV giao nhiệm vụ và HS cần thực hiện ngay trong bối cảnh bài học; không lặp sang bước khác, sản phẩm, đánh giá hoặc mục thuyết minh riêng. Với mã 12.C2.1, nhiệm vụ cần yêu cầu HS đề xuất một công cụ AI giải quyết việc cụ thể ở trường/địa phương, xác định đầu vào, đầu ra, dữ liệu huấn luyện và nguyên tắc đạo đức cần lưu ý. Chỉ học cách trình bày của ví dụ năng lực số, phải tự viết nhiệm vụ đúng tên bài, môn học, yêu cầu cần đạt và mã đã ánh xạ; tuyệt đối không sao chép tình huống thời tiết cho bài không liên quan. Không tạo câu hay tiêu đề “Thể hiện đủ: Hoạt động của giáo viên; Hoạt động của học sinh; Sản phẩm/minh chứng; Công cụ và tiêu chí đánh giá”.
+18. MỖI mã Năng lực số hoặc Năng lực AI phải được tích hợp RIÊNG LẺ tại Bước 1 – Chuyển giao nhiệm vụ của một hoạt động phù hợp. Tiêu đề chỉ chứa đúng một mã, ví dụ “Tích hợp giáo dục AI (10.C4.1): …”; tuyệt đối không viết “(10.C4.1, 10.C4.MR1)” và không ghép biểu hiện của nhiều mã trong cùng đoạn. Mỗi hoạt động chỉ được chứa tối đa một mã năng lực; các mã khác phải phân bổ sang hoạt động A/B/C/D còn trống. Mỗi đoạn phải liền mạch, ngắn gọn, nêu rõ việc GV giao nhiệm vụ và HS thực hiện trong bối cảnh bài học; không lặp sang bước khác, sản phẩm, đánh giá hoặc mục thuyết minh riêng. Với mã 12.C2.1, nhiệm vụ yêu cầu HS đề xuất một công cụ AI giải quyết việc cụ thể ở trường/địa phương, xác định đầu vào, đầu ra, dữ liệu huấn luyện và nguyên tắc đạo đức cần lưu ý. Phải tự viết nhiệm vụ đúng tên bài, môn học, yêu cầu cần đạt và đúng biểu hiện của riêng mã đó; không sao chép tình huống không liên quan. Không tạo câu hay tiêu đề “Thể hiện đủ: Hoạt động của giáo viên; Hoạt động của học sinh; Sản phẩm/minh chứng; Công cụ và tiêu chí đánh giá”.
 19. MỖI Tùy chọn nâng cao đã chọn chỉ được hòa vào đúng MỘT lần, thành MỘT đoạn liền mạch trong đúng MỘT bước của MỘT hoạt động phù hợp. Có thể dùng tiêu đề ngắn như “Khởi động:”, “Củng cố:”, “Sơ đồ tư duy:”, “Bài học STEM:” để nhận diện; không lặp nội dung sang bước khác, sản phẩm, đánh giá, không dùng nhãn kỹ thuật đặt trong ngoặc vuông và không tạo bản tóm tắt bên ngoài tiến trình.
 20. Chỉ trả về đúng bốn hoạt động A, B, C, D đã có: Mở đầu/Khởi động; Hình thành kiến thức mới; Luyện tập; Vận dụng. TUYỆT ĐỐI không tạo hoạt động mới, tiểu hoạt động 2.x hoặc mục tích hợp độc lập. Khi bố cục là 2 cột, cột trái là “Sản phẩm dự kiến”, cột phải là “Hoạt động của giáo viên và học sinh”; bốn bước được trình bày nối tiếp trong cột phải. Phiếu học tập hoặc bảng kiểm chỉ đưa vào phụ lục khi thật sự phục vụ hoạt động.
 
@@ -932,7 +932,54 @@ function normalizePlan(value: unknown, body: RequestBody) {
     const match = integrationPattern.exec(value || "");
     return match ? value.slice(0, match.index).trim() : value;
   };
-  const selectedIndicatorCodes = [...plan.digitalCompetencyIndicators, ...plan.aiCompetencyIndicators].map((indicator) => indicator.code).filter(Boolean);
+  const allIndicatorCodesToStrip = [...plan.digitalCompetencyIndicators, ...plan.aiCompetencyIndicators].map((indicator) => indicator.code).filter(Boolean);
+  const activityCapacity = Math.min(4, plan.activities.length);
+  const selectSeparateCompetencies = () => {
+    const digital = [...plan.digitalCompetencyIndicators];
+    const ai = [...plan.aiCompetencyIndicators];
+    if (!activityCapacity) return { digital: [] as Indicator[], ai: [] as Indicator[] };
+    if (!digital.length) return { digital: [] as Indicator[], ai: ai.slice(0, activityCapacity) };
+    if (!ai.length) return { digital: digital.slice(0, activityCapacity), ai: [] as Indicator[] };
+
+    const selectedDigital = digital.slice(0, Math.min(digital.length, Math.ceil(activityCapacity / 2)));
+    const selectedAi = ai.slice(0, Math.min(ai.length, activityCapacity - selectedDigital.length));
+    let remaining = activityCapacity - selectedDigital.length - selectedAi.length;
+    if (remaining > 0) {
+      const extraDigital = digital.slice(selectedDigital.length, selectedDigital.length + remaining);
+      selectedDigital.push(...extraDigital);
+      remaining -= extraDigital.length;
+    }
+    if (remaining > 0) selectedAi.push(...ai.slice(selectedAi.length, selectedAi.length + remaining));
+    return { digital: selectedDigital, ai: selectedAi };
+  };
+  const selectedCompetencies = selectSeparateCompetencies();
+  plan.digitalCompetencyIndicators = selectedCompetencies.digital;
+  plan.aiCompetencyIndicators = selectedCompetencies.ai;
+
+  const placementQueue: Array<{ kind: "digital" | "ai"; indicator: Indicator }> = [];
+  const maxCompetencyCount = Math.max(plan.digitalCompetencyIndicators.length, plan.aiCompetencyIndicators.length);
+  for (let index = 0; index < maxCompetencyCount; index += 1) {
+    const digitalIndicator = plan.digitalCompetencyIndicators[index];
+    const aiIndicator = plan.aiCompetencyIndicators[index];
+    if (digitalIndicator) placementQueue.push({ kind: "digital", indicator: digitalIndicator });
+    if (aiIndicator) placementQueue.push({ kind: "ai", indicator: aiIndicator });
+  }
+  const usedCompetencyActivities = new Set<string>();
+  const competencyPlacements: Array<{ kind: "digital" | "ai"; indicator: Indicator; activityCode: string }> = [];
+  placementQueue.forEach(({ kind, indicator }) => {
+    const preferredCodes = indicator.activityCodes.map((code) => code.toUpperCase()).filter((code) => /^[A-D]$/.test(code));
+    const fallbackCodes = kind === "digital" ? ["B", "C", "A", "D"] : ["D", "C", "B", "A"];
+    const activityCode = [...preferredCodes, ...fallbackCodes]
+      .find((code) => !usedCompetencyActivities.has(code) && plan.activities.some((activity) => activity.code.toUpperCase() === code));
+    if (!activityCode) return;
+    usedCompetencyActivities.add(activityCode);
+    indicator.activityCodes = [activityCode];
+    competencyPlacements.push({ kind, indicator, activityCode });
+  });
+  plan.digitalCompetencyIndicators = competencyPlacements.filter((item) => item.kind === "digital").map((item) => item.indicator);
+  plan.aiCompetencyIndicators = competencyPlacements.filter((item) => item.kind === "ai").map((item) => item.indicator);
+
+  const selectedIndicatorCodes = allIndicatorCodesToStrip;
   const stripIndicatorTail = (value: string) => {
     const positions = selectedIndicatorCodes.map((code) => (value || "").indexOf(code)).filter((position) => position >= 0);
     return positions.length ? value.slice(0, Math.min(...positions)).trim() : value;
@@ -957,40 +1004,30 @@ function normalizePlan(value: unknown, body: RequestBody) {
     targetStep.teacher = `${targetStep.teacher}${targetStep.teacher ? " " : ""}${compactParagraph}`;
   };
 
-  const validActivityCode = (codes: string[]) => codes.find((code) => /^[ABCD]$/i.test(code) && plan.activities.some((activity) => activity.code.toUpperCase() === code.toUpperCase()));
-  const digitalActivityCode = validActivityCode(plan.digitalCompetencyIndicators.flatMap((indicator) => indicator.activityCodes)) || "B";
-  if (plan.digitalCompetencyIndicators.length) {
-    const codes = plan.digitalCompetencyIndicators.map((indicator) => indicator.code).join(", ");
-    const behaviours = plan.digitalCompetencyIndicators.map((indicator) => indicator.indicator).filter(Boolean).join("; ");
-    const evidence = plan.digitalCompetencyIndicators.map((indicator) => indicator.evidence).filter(Boolean).join("; ");
+  competencyPlacements.forEach(({ kind, indicator, activityCode }) => {
+    const isAiDesignTask = kind === "ai" && /(?:^|\.)C2\.1$/i.test(indicator.code);
+    if (kind === "digital") {
+      injectIntoActivity(
+        activityCode,
+        englishOutput ? `Digital competence integration (${indicator.code}):` : `Tích hợp năng lực số (${indicator.code}):`,
+        englishOutput ? `The teacher assigns a digital task directly linked to this indicator: ${indicator.indicator}.` : `GV giao một nhiệm vụ số gắn trực tiếp với chỉ báo này: ${indicator.indicator}.`,
+        englishOutput ? `Learners use an appropriate tool and explain the result${indicator.evidence ? ` through ${indicator.evidence}` : ""}.` : `HS sử dụng công cụ phù hợp, thực hiện và giải thích kết quả${indicator.evidence ? ` qua ${indicator.evidence}` : ""}.`,
+        "", "", activityCode, 0,
+      );
+      return;
+    }
     injectIntoActivity(
-      digitalActivityCode,
-      englishOutput ? `Digital competence integration (${codes}):` : `Tích hợp năng lực số (${codes}):`,
-      englishOutput ? `The teacher assigns one digital task directly linked to the lesson outcome: ${behaviours}.` : `GV giao một nhiệm vụ số gắn trực tiếp với yêu cầu cần đạt của bài học: ${behaviours}.`,
-      englishOutput ? `Learners use the selected tool, record and explain the result${evidence ? ` through ${evidence}` : ""}.` : `HS sử dụng công cụ phù hợp, ghi lại và giải thích kết quả${evidence ? ` qua ${evidence}` : ""}.`,
-      "", "", "B", 0,
-    );
-  }
-  if (plan.aiCompetencyIndicators.length) {
-    const codes = plan.aiCompetencyIndicators.map((indicator) => indicator.code).join(", ");
-    const behaviours = plan.aiCompetencyIndicators.map((indicator) => indicator.indicator).filter(Boolean).join("; ");
-    const includesAiDesignTask = plan.aiCompetencyIndicators.some((indicator) => /(?:^|\.)C2\.1$/i.test(indicator.code));
-    const mappedAiCode = validActivityCode(plan.aiCompetencyIndicators.flatMap((indicator) => indicator.activityCodes));
-    const aiActivityCode = mappedAiCode && mappedAiCode !== digitalActivityCode
-      ? mappedAiCode
-      : (["D", "C", "B", "A"].find((code) => code !== digitalActivityCode && plan.activities.some((activity) => activity.code === code)) || "D");
-    injectIntoActivity(
-      aiActivityCode,
-      englishOutput ? `AI education integration (${codes}):` : `Tích hợp giáo dục AI (${codes}):`,
-      includesAiDesignTask
+      activityCode,
+      englishOutput ? `AI education integration (${indicator.code}):` : `Tích hợp giáo dục AI (${indicator.code}):`,
+      isAiDesignTask
         ? (englishOutput ? "The teacher asks each group to propose a simple AI tool that solves a specific school or local problem." : "GV yêu cầu mỗi nhóm đề xuất một công cụ AI đơn giản giúp giải quyết một việc cụ thể ở trường hoặc địa phương.")
-        : (englishOutput ? `The teacher guides one AI-related task aligned with the lesson: ${behaviours}, requiring reliable-source checking and human oversight.` : `GV hướng dẫn một nhiệm vụ về AI phù hợp với bài học: ${behaviours}, đồng thời yêu cầu kiểm chứng bằng nguồn tin cậy và giữ vai trò quyết định của con người.`),
-      includesAiDesignTask
+        : (englishOutput ? `The teacher assigns one AI-related task aligned with this indicator: ${indicator.indicator}, requiring reliable-source checking and human oversight.` : `GV giao một nhiệm vụ AI riêng phù hợp với chỉ báo này: ${indicator.indicator}, đồng thời yêu cầu kiểm chứng bằng nguồn tin cậy và giữ vai trò quyết định của con người.`),
+      isAiDesignTask
         ? (englishOutput ? "Learners state the tool's input and output, identify the training data it needs, and explain the ethical principle that deserves particular attention." : "HS nêu đầu vào, đầu ra của công cụ, xác định dữ liệu cần để huấn luyện và giải thích nguyên tắc đạo đức cần đặc biệt lưu ý.")
-        : (englishOutput ? "Learners complete the task responsibly, compare the result with lesson evidence, and explain their conclusion." : "HS thực hiện nhiệm vụ có trách nhiệm, đối chiếu kết quả với minh chứng của bài học và giải thích kết luận."),
-      "", "", "D", 0,
+        : (englishOutput ? "Learners complete this task responsibly, compare the result with lesson evidence, and explain their conclusion." : "HS thực hiện riêng nhiệm vụ này, đối chiếu kết quả với minh chứng của bài học và giải thích kết luận."),
+      "", "", activityCode, 0,
     );
-  }
+  });
 
   if (warmupRequested && !plan.advancedContent.warmup.length) plan.advancedContent.warmup = [englishOutput ? `The teacher presents a short situation related to ${plan.title}; learners observe, predict, and state an initial question.` : `Giáo viên trình chiếu tình huống ngắn liên quan đến ${plan.title}; học sinh quan sát, dự đoán và nêu câu hỏi ban đầu.`];
   if (warmupRequested) injectIntoActivity("A", englishOutput ? "Warm-up:" : "Khởi động:", plan.advancedContent.warmup.join(" "), englishOutput ? "Learners observe, respond quickly, and explain their prediction." : "Học sinh quan sát, phản hồi nhanh và giải thích dự đoán.", englishOutput ? "Initial responses and learning questions." : "Câu trả lời ban đầu và câu hỏi học tập.", englishOutput ? "Use an observation checklist for engagement and relevance." : "Dùng bảng kiểm mức độ tham gia và tính phù hợp của câu trả lời.", "A");

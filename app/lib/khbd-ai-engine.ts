@@ -18,8 +18,8 @@ export type KhbdRequestLike = {
 };
 
 const OPTION_RULES: Record<string, string> = {
-  digital: "Năng lực số chỉ được tích hợp khi HS thực hiện hành vi số thực tế. Ưu tiên mã từ PPCT tích hợp đúng bài; nếu không có mới chọn mã phù hợp lớp. Không coi việc GV trình chiếu là minh chứng năng lực số. Đặt nhiệm vụ tích hợp ưu tiên tại Bước 1 - GV chuyển giao nhiệm vụ của một hoạt động phù hợp.",
-  aiEducation: "Giáo dục AI phải theo chu trình: sử dụng/nhận biết AI -> kiểm chứng bằng nguồn hoặc minh chứng bài học -> đánh giá -> chỉnh sửa/kết luận. Không chấp nhận nhiệm vụ kiểu hỏi AI rồi chép. Ưu tiên mã từ PPCT tích hợp đúng bài. Đặt nhiệm vụ tích hợp ưu tiên tại Bước 1 - GV chuyển giao nhiệm vụ.",
+  digital: "Năng lực số chỉ được tích hợp khi HS thực hiện hành vi số thực tế. Ưu tiên mã từ PPCT tích hợp đúng bài; nếu không có mới chọn mã phù hợp lớp. Không coi việc GV trình chiếu là minh chứng năng lực số. Mỗi mã phải thành một nhiệm vụ riêng tại Bước 1 - GV chuyển giao nhiệm vụ của một hoạt động riêng; không ghép nhiều mã trong một tiêu đề, một đoạn hoặc một hoạt động.",
+  aiEducation: "Giáo dục AI phải theo chu trình: sử dụng/nhận biết AI -> kiểm chứng bằng nguồn hoặc minh chứng bài học -> đánh giá -> chỉnh sửa/kết luận. Không chấp nhận nhiệm vụ kiểu hỏi AI rồi chép. Ưu tiên mã từ PPCT tích hợp đúng bài. Mỗi mã AI phải thành một nhiệm vụ riêng tại Bước 1 của một hoạt động riêng; tuyệt đối không viết nhiều mã chung trong ngoặc hoặc gộp biểu hiện của nhiều mã.",
   defense: "Chỉ tích hợp GDQP-AN khi có liên hệ tự nhiên với nội dung bài; nếu không phù hợp thì không ép tích hợp và phải giữ trọng tâm môn học.",
   inclusive: "Đề xuất hỗ trợ sư phạm theo hướng UDL, không chẩn đoán. Chỉ điều chỉnh cách tiếp cận, phương tiện, thời gian hoặc hình thức trả lời nhưng giữ mục tiêu cốt lõi.",
   warmup: "Khởi động phải ngắn, kích hoạt kiến thức nền và dẫn trực tiếp vào nội dung bài; không tạo trò chơi chỉ để giải trí.",
