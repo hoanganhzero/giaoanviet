@@ -40,7 +40,30 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi">
-      <body>{children}</body>
+      <body>
+        {children}
+        <div
+          aria-label="Phiên bản AI Engine"
+          title="Mega Prompt Engine + Quality Gate"
+          style={{
+            position: "fixed",
+            right: 12,
+            bottom: 10,
+            zIndex: 9999,
+            padding: "5px 9px",
+            borderRadius: 999,
+            background: "rgba(15, 23, 42, 0.88)",
+            color: "#fff",
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: ".02em",
+            boxShadow: "0 4px 18px rgba(15, 23, 42, .18)",
+            pointerEvents: "none",
+          }}
+        >
+          AI Engine v2.1
+        </div>
+      </body>
     </html>
   );
 }
