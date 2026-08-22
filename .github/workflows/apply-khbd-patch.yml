@@ -1,11 +1,10 @@
 name: Apply KHBD patch
 
 on:
-  push:
+  pull_request:
     branches:
-      - patch-khbd-20260822
-    paths:
-      - .github/workflows/apply-khbd-patch.yml
+      - main
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
@@ -56,9 +55,8 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Push patch commit to main
+      - name: Push validated patch to main
         shell: bash
         run: |
           set -euo pipefail
           git push origin HEAD:main
-          git push origin --delete patch-khbd-20260822 || true
