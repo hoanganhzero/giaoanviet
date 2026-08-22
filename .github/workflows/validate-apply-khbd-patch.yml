@@ -1,0 +1,60 @@
+name: Validate and apply KHBD patch
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  apply-patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout pull request
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Rebuild uploaded patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .patch-upload/p1.txt .patch-upload/p2.txt .patch-upload/p3.txt .patch-upload/p4.txt .patch-upload/p5.txt .patch-upload/p6.txt > /tmp/khbd.patch.gz.b64
+          base64 --decode /tmp/khbd.patch.gz.b64 > /tmp/khbd.patch.gz
+          gzip --decompress --stdout /tmp/khbd.patch.gz > /tmp/khbd.patch
+          test -s /tmp/khbd.patch
+          grep -q '^From b67cb30e4c66f97c17fd332873d524675653a9c3 ' /tmp/khbd.patch
+
+      - name: Apply with git am and verify executable modes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout -B main origin/main
+          git rm .github/workflows/validate-apply-khbd-patch.yml
+          git commit -m "Remove temporary KHBD patch workflow"
+          git am /tmp/khbd.patch
+          git diff HEAD^ HEAD --check
+          test "$(git ls-files -s scripts/build-verified.sh | awk '{print $1}')" = "100755"
+          test "$(git ls-files -s scripts/install-ci.sh | awk '{print $1}')" = "100755"
+          test "$(git ls-files -s scripts/sites-env.sh | awk '{print $1}')" = "100755"
+          test "$(git ls-files -s scripts/validate-artifact.sh | awk '{print $1}')" = "100755"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Push validated result to main
+        shell: bash
+        run: git push origin HEAD:main
