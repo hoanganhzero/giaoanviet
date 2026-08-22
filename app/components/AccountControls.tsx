@@ -1,0 +1,5 @@
+"use client";
+import { useEffect,useState } from "react";
+export type ClientUser={username:string;fullName:string;phone:string;school:string;department:string;role:"admin"|"user";mustChangePassword:boolean;plan:"free"|"unlimited";khbdUsed:number;ppctUsed:number};
+export function useAccountGate(next:string,enabled=true){const[user,setUser]=useState<ClientUser|null|undefined>(undefined);useEffect(()=>{if(!enabled)return;fetch('/api/auth/me').then(r=>r.json()).then(d=>{if(!d.user){location.href=`/login?next=${encodeURIComponent(next)}`;return}setUser(d.user)}).catch(()=>location.href='/login')},[next,enabled]);return user}
+export default function AccountControls({user}:{user:ClientUser}){return <div className="account-controls"><span>♙ {user.fullName}</span>{user.plan==='free'&&<a className="quota-link" href="https://zalo.me/0965653750" title="Gửi yêu cầu kích hoạt không giới hạn">KHBD {Math.max(0,5-user.khbdUsed)}/5 · PPCT {Math.max(0,5-user.ppctUsed)}/5</a>}<a href="/profile">Hồ sơ</a>{user.role==='admin'&&<a href="/admin">Quản trị</a>}<button onClick={async()=>{await fetch('/api/auth/logout',{method:'POST'});location.href='/login'}}>Đăng xuất</button></div>}

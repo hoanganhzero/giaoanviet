@@ -1,0 +1,5 @@
+declare module "cloudflare:workers" {
+  export const env: any;
+}
+interface Fetcher { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> }
+interface D1Database { prepare(sql: string): unknown }
