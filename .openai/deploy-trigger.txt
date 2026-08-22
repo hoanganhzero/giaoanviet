@@ -1,0 +1,3 @@
+Deploy trigger for khbd.giaovienso.id.vn
+Patch commit: efbc8994c522335d71783a7eff83d63b3d1280e6
+Triggered: 2026-08-22
