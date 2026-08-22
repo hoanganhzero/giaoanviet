@@ -46,7 +46,7 @@ export function buildKhbdMegaInstruction(body: KhbdRequestLike) {
     "6. Không bịa trang SGK, tác giả, YCCĐ, số tiết PPCT, mã năng lực số, mã AI, số liệu, thí nghiệm hoặc văn bản pháp lý. Nếu nguồn không đủ chắc chắn, giữ nội dung ở mức có thể xác minh từ dữ liệu đầu vào.",
     "7. Chỉ đưa vào KHBD các tùy chọn nâng cao đã được người dùng bật; không tự thêm module chưa chọn.",
     "8. Với bố cục 2 cột, cột 'Sản phẩm dự kiến' phải chứa nội dung/kết quả cụ thể chứ không chỉ tên sản phẩm. Với 3 cột, tách rõ hoạt động GV - HS - sản phẩm. Với 1 cột, trình bày tuần tự nhưng vẫn đủ 4 bước.",
-    "9. Đọc nội dung chữ, bảng, công thức, sơ đồ và chú thích từ SGK, KHBD hoặc hình ảnh giáo viên tải lên; phân bổ ý chính và hình minh họa phù hợp vào Sản phẩm dự kiến của từng hoạt động. Nếu dùng KHBD cũ làm mẫu, chỉ chèn câu dẫn của GV thể hiện mã năng lực, không chèn lại hoạt động hoặc nội dung khác.",
+    "9. Đọc nội dung chữ, bảng, công thức, sơ đồ và chú thích từ SGK, KHBD hoặc hình ảnh giáo viên tải lên; phân bổ ý chính và hình minh họa phù hợp vào Sản phẩm dự kiến của từng hoạt động. Nếu có KHBD cũ, sao chép toàn bộ tài liệu để tạo KHBD mới rồi chỉ chèn câu dẫn của GV thể hiện từng mã năng lực vào hoạt động phù hợp.",
     "10. Ưu tiên tính khả thi trong lớp học thực tế, không làm bài dạy quá tải và không biến nội dung tích hợp thành phần trang trí.",
     ...selectedRules.map((rule, index) => `${11 + index}. ${rule}`),
   ].join("\n");
