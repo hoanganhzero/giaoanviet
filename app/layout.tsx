@@ -44,7 +44,7 @@ export default function RootLayout({
         {children}
         <div
           aria-label="Phiên bản AI Engine"
-          title="Mega Prompt Engine + Quality Gate"
+          title="Chuẩn tích hợp NLS &amp; AI: Phần 1 bảng định hướng + khối 🔴 5 phân khối + Quality Gate"
           style={{
             position: "fixed",
             right: 12,
@@ -61,7 +61,7 @@ export default function RootLayout({
             pointerEvents: "none",
           }}
         >
-          AI Engine v2.1
+          AI Engine v3.0
         </div>
       </body>
     </html>

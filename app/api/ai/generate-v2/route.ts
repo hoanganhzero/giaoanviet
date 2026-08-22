@@ -20,13 +20,11 @@ export async function POST(request: NextRequest) {
   }
 
   if (body.task !== "ppct") {
-    const instruction = buildKhbdMegaInstruction(body);
-    const currentCore = String(body.form?.core || "").trim();
     body = {
       ...body,
       form: {
         ...(body.form || {}),
-        core: [currentCore, instruction].filter(Boolean).join("\n\n"),
+        systemInstruction: buildKhbdMegaInstruction(body),
       },
     };
   }
