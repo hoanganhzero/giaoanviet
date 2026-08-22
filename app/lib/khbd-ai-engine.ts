@@ -18,8 +18,8 @@ export type KhbdRequestLike = {
 };
 
 const OPTION_RULES: Record<string, string> = {
-  digital: "Năng lực số chỉ được tích hợp khi HS thực hiện hành vi số thực tế. Ưu tiên mã từ PPCT tích hợp đúng bài; nếu không có mới chọn mã phù hợp lớp. Không coi việc GV trình chiếu là minh chứng năng lực số. Mỗi mã phải thành một nhiệm vụ riêng tại Bước 1 - GV chuyển giao nhiệm vụ của một hoạt động riêng; không ghép nhiều mã trong một tiêu đề, một đoạn hoặc một hoạt động.",
-  aiEducation: "Giáo dục AI phải theo chu trình: sử dụng/nhận biết AI -> kiểm chứng bằng nguồn hoặc minh chứng bài học -> đánh giá -> chỉnh sửa/kết luận. Không chấp nhận nhiệm vụ kiểu hỏi AI rồi chép. Ưu tiên mã từ PPCT tích hợp đúng bài. Mỗi mã AI phải thành một nhiệm vụ riêng tại Bước 1 của một hoạt động riêng; tuyệt đối không viết nhiều mã chung trong ngoặc hoặc gộp biểu hiện của nhiều mã.",
+  digital: "Năng lực số chỉ được tích hợp khi HS thực hiện hành vi số thực tế. Mỗi mã chỉ thành một câu nói/lời dẫn/câu giao nhiệm vụ của GV tại Bước 1 của một hoạt động; không thêm đoạn HS, sản phẩm hay đánh giá riêng và không ghép nhiều mã.",
+  aiEducation: "Mỗi mã AI chỉ thành một câu nói/lời dẫn/câu giao nhiệm vụ của GV tại Bước 1, yêu cầu hành vi AI có kiểm chứng và trách nhiệm con người; không thêm đoạn HS, sản phẩm hay đánh giá riêng và không ghép nhiều mã.",
   defense: "Chỉ tích hợp GDQP-AN khi có liên hệ tự nhiên với nội dung bài; nếu không phù hợp thì không ép tích hợp và phải giữ trọng tâm môn học.",
   inclusive: "Đề xuất hỗ trợ sư phạm theo hướng UDL, không chẩn đoán. Chỉ điều chỉnh cách tiếp cận, phương tiện, thời gian hoặc hình thức trả lời nhưng giữ mục tiêu cốt lõi.",
   warmup: "Khởi động phải ngắn, kích hoạt kiến thức nền và dẫn trực tiếp vào nội dung bài; không tạo trò chơi chỉ để giải trí.",
@@ -46,8 +46,9 @@ export function buildKhbdMegaInstruction(body: KhbdRequestLike) {
     "6. Không bịa trang SGK, tác giả, YCCĐ, số tiết PPCT, mã năng lực số, mã AI, số liệu, thí nghiệm hoặc văn bản pháp lý. Nếu nguồn không đủ chắc chắn, giữ nội dung ở mức có thể xác minh từ dữ liệu đầu vào.",
     "7. Chỉ đưa vào KHBD các tùy chọn nâng cao đã được người dùng bật; không tự thêm module chưa chọn.",
     "8. Với bố cục 2 cột, cột 'Sản phẩm dự kiến' phải chứa nội dung/kết quả cụ thể chứ không chỉ tên sản phẩm. Với 3 cột, tách rõ hoạt động GV - HS - sản phẩm. Với 1 cột, trình bày tuần tự nhưng vẫn đủ 4 bước.",
-    "9. Ưu tiên tính khả thi trong lớp học thực tế, không làm bài dạy quá tải và không biến nội dung tích hợp thành phần trang trí.",
-    ...selectedRules.map((rule, index) => `${10 + index}. ${rule}`),
+    "9. Đọc nội dung chữ, bảng, công thức, sơ đồ và chú thích từ SGK, KHBD hoặc hình ảnh giáo viên tải lên; phân bổ ý chính và hình minh họa phù hợp vào Sản phẩm dự kiến của từng hoạt động. Nếu dùng KHBD cũ làm mẫu, chỉ chèn câu dẫn của GV thể hiện mã năng lực, không chèn lại hoạt động hoặc nội dung khác.",
+    "10. Ưu tiên tính khả thi trong lớp học thực tế, không làm bài dạy quá tải và không biến nội dung tích hợp thành phần trang trí.",
+    ...selectedRules.map((rule, index) => `${11 + index}. ${rule}`),
   ].join("\n");
 }
 

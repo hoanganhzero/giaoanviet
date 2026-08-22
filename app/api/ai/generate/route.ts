@@ -23,6 +23,7 @@ type SourceMaterial = {
   kind?: "ppct" | "sgk" | "khbd" | "hoclieu";
   text?: string;
   structure?: string;
+  imageDataUrls?: string[];
 };
 
 type PpctForm = {
@@ -243,7 +244,8 @@ JSON phải đúng cấu trúc:
 function matchedSourceContext(material: SourceMaterial, title: string) {
   const text = String(material.text || "").replace(/\r/g, "").trim();
   const kind = material.kind || "hoclieu";
-  if (!text) return { ...material, kind, matched: false, score: 0, excerpt: "" };
+  const imageCount = Array.isArray(material.imageDataUrls) ? material.imageDataUrls.length : 0;
+  if (!text) return { ...material, kind, matched: kind === "hoclieu" && imageCount > 0, score: 0, excerpt: imageCount ? `Có ${imageCount} hình ảnh nguồn cần đọc và đối chiếu với tên bài.` : "" };
   let chunks = text.split(/\n+/).map((line) => line.trim()).filter(Boolean);
   if (chunks.length < 6) chunks = text.split(/(?<=[.!?;:])\s+(?=[A-ZÀ-ỸĐ0-9])/).map((line) => line.trim()).filter(Boolean);
   const candidates = chunks.map((chunk, index) => ({ index, score: lessonMatchScore(chunk.slice(0, 500), title) })).sort((left, right) => right.score - left.score);
@@ -278,6 +280,7 @@ QUY TẮC KHAI THÁC NGUỒN:
 - Ưu tiên theo thứ tự: Yêu cầu cần đạt trong PPCT hoặc nội dung giáo viên nhập → đúng bài trong SGK → đúng bài trong KHBD cũ → học liệu tham khảo.
 - Chỉ lấy nội dung nằm trong đoạn đã khớp tên bài; không trộn kiến thức, công thức, thí nghiệm hoặc bài tập của bài khác.
 - Tự tổng hợp đúng các ý cốt lõi, công thức/kí hiệu, thí nghiệm, hướng dẫn bài tập và gợi ý hình minh họa phục vụ trực tiếp Yêu cầu cần đạt.
+- Đọc cả chữ, bảng, công thức, sơ đồ và chú thích trong hình ảnh đính kèm. Chỉ dùng nội dung/hình thực sự liên quan đúng bài; phân bổ ý chính vào Sản phẩm dự kiến của từng hoạt động tương ứng và mô tả vị trí hình trong sourceSynthesis.visualAids.
 - Nếu có KHBD cũ/mẫu khớp bài: giữ thứ tự mục, cách đặt tiêu đề, logic hoạt động và bố cục bảng/cột thể hiện trong nguồn; không viết lại vô cớ. Chỉ bổ sung đúng các Tùy chọn nâng cao giáo viên đã đánh dấu.
 - Nếu không có KHBD cũ/mẫu khớp bài: dùng đúng nội dung SGK đã khớp tên bài để viết Sản phẩm dự kiến cụ thể cho từng hoạt động; phải thể hiện các ý chính, khái niệm, công thức/kí hiệu, kết quả thí nghiệm hoặc hướng giải bài tập cần đạt, không chỉ ghi chung chung “phiếu học tập”, “câu trả lời” hay “sản phẩm của học sinh”.
 ` : "\nKhông có SGK, KHBD cũ hoặc học liệu đính kèm. Chỉ dùng nội dung giáo viên nhập và kiến thức phù hợp chương trình.\n";
@@ -325,8 +328,8 @@ ${englishOutput ? "QUY TẮC NGÔN NGỮ TUYỆT ĐỐI: Môn học là Tiếng 
 14. Với môn Toán, Vật lí, Hóa học, Sinh học: mọi mục tiêu, nội dung, câu hỏi, đáp án và sản phẩm phải giữ đúng công thức, ký hiệu, chỉ số trên/dưới, vectơ, đơn vị và phương trình phản ứng. Ưu tiên Unicode tương thích trình duyệt và Word: x², aₙ, √, ∑, ∫, Δ, F⃗, v = s/t, H₂SO₄, 2H₂ + O₂ → 2H₂O, ADN, kiểu gen AaBb. Không dùng hình ảnh thay cho công thức.
 15. Nếu có nguồn đã khớp tên bài, trường sourceSynthesis phải rút ra đúng nội dung phục vụ Yêu cầu cần đạt: các đề mục SGK; ý chính cốt lõi theo từng đề mục; công thức/kí hiệu; thí nghiệm hoặc thực hành; hướng dẫn bài tập; hình/sơ đồ minh họa nên dùng và vị trí chèn. Đây chỉ là dữ liệu nội bộ: phải phân bổ nội dung phù hợp vào mục tiêu, thiết bị và các hoạt động; KHÔNG tạo một mục riêng có tên “Nội dung cốt lõi đã đối chiếu”. Khi không có KHBD cũ/mẫu khớp bài, trường product của từng tiểu hoạt động B.1/B.2... phải nêu cụ thể kiến thức HS cần trình bày hoặc kết luận từ đúng mục SGK tương ứng, gồm khái niệm, đặc điểm, quy tắc, công thức, kết quả thí nghiệm hay cách giải nếu có; không chỉ ghi “phiếu học tập”, “câu trả lời” hoặc “sản phẩm nhóm”. Không bịa chi tiết không có căn cứ và không lấy nội dung của bài khác.
 16. advancedContent phải tuân thủ từng lựa chọn: warmup chỉ có dữ liệu khi chọn Khởi động; timeline chỉ khi chọn Dòng thời gian; mindMap chỉ khi chọn Đồ họa thông tin/Sơ đồ tư duy; stemProcess chỉ khi chọn Bài học STEM; learningGame chỉ khi chọn Trò chơi học tập; defenseIntegration chỉ khi chọn Giáo dục quốc phòng và an ninh. Mục không chọn phải trả về mảng rỗng hoặc đối tượng rỗng.
-17. Nếu có KHBD cũ/mẫu đã khớp, nội dung mới phải bám bố cục, thứ tự mục và cách tổ chức của mẫu. Giữ nguyên các mục a) Mục tiêu, b) Nội dung, c) Sản phẩm, d) Tổ chức thực hiện; nội dung tích hợp phải hòa vào hoạt động phù hợp, không tạo phần thuyết minh kỹ thuật tách rời làm vỡ cấu trúc mẫu.
-18. MỖI mã Năng lực số hoặc Năng lực AI phải được tích hợp RIÊNG LẺ tại Bước 1 – Chuyển giao nhiệm vụ của một hoạt động phù hợp. Tiêu đề chỉ chứa đúng một mã, ví dụ “Tích hợp giáo dục AI (10.C4.1): …”; tuyệt đối không viết “(10.C4.1, 10.C4.MR1)” và không ghép biểu hiện của nhiều mã trong cùng đoạn. Mỗi hoạt động chỉ được chứa tối đa một mã năng lực; các mã khác phải phân bổ sang hoạt động A/B/C/D còn trống. Mỗi đoạn phải liền mạch, ngắn gọn, nêu rõ việc GV giao nhiệm vụ và HS thực hiện trong bối cảnh bài học; không lặp sang bước khác, sản phẩm, đánh giá hoặc mục thuyết minh riêng. Với mã 12.C2.1, nhiệm vụ yêu cầu HS đề xuất một công cụ AI giải quyết việc cụ thể ở trường/địa phương, xác định đầu vào, đầu ra, dữ liệu huấn luyện và nguyên tắc đạo đức cần lưu ý. Phải tự viết nhiệm vụ đúng tên bài, môn học, yêu cầu cần đạt và đúng biểu hiện của riêng mã đó; không sao chép tình huống không liên quan. Không tạo câu hay tiêu đề “Thể hiện đủ: Hoạt động của giáo viên; Hoạt động của học sinh; Sản phẩm/minh chứng; Công cụ và tiêu chí đánh giá”.
+17. Nếu có KHBD cũ/mẫu đã khớp, giữ nguyên toàn bộ nội dung, bố cục, bảng và hình ảnh của mẫu. Khi xuất Word giữ mẫu, KHÔNG chèn lại hoạt động, mục tiêu, sản phẩm, mô tả HS hay bảng đánh giá; với Năng lực số/AI chỉ bổ sung đúng một câu dẫn hoặc câu giao nhiệm vụ của GV vào Bước 1/cột hoạt động GV phù hợp để thể hiện từng mã.
+18. MỖI mã Năng lực số hoặc Năng lực AI phải được tích hợp RIÊNG LẺ tại Bước 1 – Chuyển giao nhiệm vụ của một hoạt động phù hợp, dưới dạng đúng MỘT câu nói/lời dẫn/câu giao nhiệm vụ của GV đủ để thể hiện hành vi năng lực. Tiêu đề chỉ chứa đúng một mã, ví dụ “Tích hợp giáo dục AI (10.C4.1): …”; tuyệt đối không viết nhiều mã chung trong ngoặc, không ghép biểu hiện của nhiều mã, không thêm đoạn mô tả riêng cho HS, sản phẩm hay đánh giá. Mỗi hoạt động chỉ chứa tối đa một mã năng lực. Với mã 12.C2.1, câu giao nhiệm vụ của GV yêu cầu HS đề xuất công cụ AI, xác định đầu vào, đầu ra, dữ liệu huấn luyện và nguyên tắc đạo đức. Phải viết đúng bối cảnh bài học; không sao chép tình huống không liên quan.
 19. MỖI Tùy chọn nâng cao đã chọn chỉ được hòa vào đúng MỘT lần, thành MỘT đoạn liền mạch trong đúng MỘT bước của MỘT hoạt động phù hợp. Có thể dùng tiêu đề ngắn như “Khởi động:”, “Củng cố:”, “Sơ đồ tư duy:”, “Bài học STEM:” để nhận diện; không lặp nội dung sang bước khác, sản phẩm, đánh giá, không dùng nhãn kỹ thuật đặt trong ngoặc vuông và không tạo bản tóm tắt bên ngoài tiến trình.
 20. Chỉ trả về đúng bốn hoạt động lớn A, B, C, D: Mở đầu/Khởi động; Hình thành kiến thức mới; Luyện tập; Vận dụng. Không tạo hoạt động lớn thứ năm hoặc mục tích hợp độc lập; riêng hoạt động B bắt buộc được phép và phải chia thành các tiểu hoạt động B.1, B.2... theo đề mục SGK. Khi bố cục là 2 cột, cột trái là “Sản phẩm dự kiến” chứa kiến thức cụ thể của từng tiểu hoạt động, cột phải là “Hoạt động của giáo viên và học sinh” chứa đủ bốn bước và nội dung tích hợp đúng vị trí. Khi bố cục là 3 cột, tách đúng hoạt động GV, hoạt động HS và Sản phẩm dự kiến của từng bước. Phiếu học tập hoặc bảng kiểm chỉ đưa vào phụ lục khi thật sự phục vụ hoạt động.
 
@@ -418,7 +421,16 @@ JSON phải đúng cấu trúc:
 }`;
 }
 
-async function callOpenAI(key: string, model: string, prompt: string) {
+type SourceImage = { dataUrl: string; mimeType: string; base64: string };
+
+function sourceImages(body: RequestBody): SourceImage[] {
+  return (body.form?.sourceMaterials || []).flatMap((material) => material.imageDataUrls || []).slice(0, 6).map((dataUrl) => {
+    const match = dataUrl.match(/^data:([^;]+);base64,([\s\S]+)$/);
+    return match ? { dataUrl, mimeType: match[1], base64: match[2] } : null;
+  }).filter((item): item is SourceImage => Boolean(item));
+}
+
+async function callOpenAI(key: string, model: string, prompt: string, images: SourceImage[] = []) {
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
@@ -426,7 +438,7 @@ async function callOpenAI(key: string, model: string, prompt: string) {
       model,
       input: [
         { role: "system", content: [{ type: "input_text", text: "Bạn là chuyên gia giáo dục Việt Nam, tạo nội dung chính xác và chỉ trả về JSON hợp lệ." }] },
-        { role: "user", content: [{ type: "input_text", text: prompt }] },
+        { role: "user", content: [{ type: "input_text", text: prompt }, ...images.map((image) => ({ type: "input_image", image_url: image.dataUrl, detail: "auto" }))] },
       ],
       max_output_tokens: 30000,
     }),
@@ -443,12 +455,12 @@ async function callOpenAI(key: string, model: string, prompt: string) {
   return direct || nested;
 }
 
-async function callGemini(key: string, model: string, prompt: string) {
+async function callGemini(key: string, model: string, prompt: string, images: SourceImage[] = []) {
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": key },
     body: JSON.stringify({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      contents: [{ role: "user", parts: [{ text: prompt }, ...images.map((image) => ({ inlineData: { mimeType: image.mimeType, data: image.base64 } }))] }],
       generationConfig: { responseMimeType: "application/json", maxOutputTokens: 30000, thinkingConfig: { thinkingLevel: "medium" } },
     }),
   });
@@ -459,7 +471,7 @@ async function callGemini(key: string, model: string, prompt: string) {
   return first?.content?.parts?.map((part) => part.text || "").join("") || "";
 }
 
-async function callKimi(key: string, model: string, prompt: string) {
+async function callKimi(key: string, model: string, prompt: string, images: SourceImage[] = []) {
   const baseUrl = (process.env.KIMI_BASE_URL || "https://api.moonshot.ai/v1").replace(/\/$/, "");
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
@@ -468,7 +480,7 @@ async function callKimi(key: string, model: string, prompt: string) {
       model,
       messages: [
         { role: "system", content: "Bạn là chuyên gia giáo dục Việt Nam, tạo nội dung chính xác và chỉ trả về JSON hợp lệ." },
-        { role: "user", content: prompt },
+        { role: "user", content: images.length ? [{ type: "text", text: prompt }, ...images.map((image) => ({ type: "image_url", image_url: { url: image.dataUrl } }))] : prompt },
       ],
       temperature: 0.35,
       max_tokens: 30000,
@@ -482,7 +494,7 @@ async function callKimi(key: string, model: string, prompt: string) {
   return first?.message?.content || "";
 }
 
-async function callKira(key: string, model: string, prompt: string) {
+async function callKira(key: string, model: string, prompt: string, images: SourceImage[] = []) {
   const response = await fetch(`${kiraApiBase()}/chat/completions`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
@@ -490,7 +502,7 @@ async function callKira(key: string, model: string, prompt: string) {
       model,
       messages: [
         { role: "system", content: "Bạn là chuyên gia giáo dục Việt Nam. Chỉ trả về một đối tượng JSON hợp lệ, không dùng Markdown." },
-        { role: "user", content: prompt },
+        { role: "user", content: images.length ? [{ type: "text", text: prompt }, ...images.map((image) => ({ type: "image_url", image_url: { url: image.dataUrl } }))] : prompt },
       ],
       stream: false,
       temperature: 0.35,
@@ -1100,7 +1112,7 @@ function normalizePlan(value: unknown, body: RequestBody) {
     if (!targetStep) return;
     const teacherParagraph = `${label} ${teacher}`.replace(/\s+/g, " ").trim();
     targetStep.teacher = `${targetStep.teacher}${targetStep.teacher ? " " : ""}${teacherParagraph}`;
-    targetStep.student = `${targetStep.student}${targetStep.student ? " " : ""}${student}`.replace(/\s+/g, " ").trim();
+    if (student.trim()) targetStep.student = `${targetStep.student}${targetStep.student ? " " : ""}${student}`.replace(/\s+/g, " ").trim();
   };
 
   competencyPlacements.forEach(({ kind, indicator, activityCode }) => {
@@ -1109,8 +1121,8 @@ function normalizePlan(value: unknown, body: RequestBody) {
       injectIntoActivity(
         activityCode,
         englishOutput ? `Digital competence integration (${indicator.code}):` : `Tích hợp năng lực số (${indicator.code}):`,
-        englishOutput ? `The teacher assigns a digital task directly linked to this indicator: ${indicator.indicator}.` : `GV giao một nhiệm vụ số gắn trực tiếp với chỉ báo này: ${indicator.indicator}.`,
-        englishOutput ? `Learners use an appropriate tool and explain the result${indicator.evidence ? ` through ${indicator.evidence}` : ""}.` : `HS sử dụng công cụ phù hợp, thực hiện và giải thích kết quả${indicator.evidence ? ` qua ${indicator.evidence}` : ""}.`,
+        englishOutput ? `The teacher asks learners to use an appropriate digital tool to complete this lesson task and explain the result, thereby demonstrating: ${indicator.indicator}.` : `GV yêu cầu HS sử dụng công cụ số phù hợp để thực hiện nhiệm vụ của bài học, trình bày và giải thích kết quả, qua đó thể hiện: ${indicator.indicator}.`,
+        "",
         "", "", activityCode, 0,
       );
       return;
@@ -1119,11 +1131,9 @@ function normalizePlan(value: unknown, body: RequestBody) {
       activityCode,
       englishOutput ? `AI education integration (${indicator.code}):` : `Tích hợp giáo dục AI (${indicator.code}):`,
       isAiDesignTask
-        ? (englishOutput ? "The teacher asks each group to propose a simple AI tool that solves a specific school or local problem." : "GV yêu cầu mỗi nhóm đề xuất một công cụ AI đơn giản giúp giải quyết một việc cụ thể ở trường hoặc địa phương.")
-        : (englishOutput ? `The teacher assigns one AI-related task aligned with this indicator: ${indicator.indicator}, requiring reliable-source checking and human oversight.` : `GV giao một nhiệm vụ AI riêng phù hợp với chỉ báo này: ${indicator.indicator}, đồng thời yêu cầu kiểm chứng bằng nguồn tin cậy và giữ vai trò quyết định của con người.`),
-      isAiDesignTask
-        ? (englishOutput ? "Learners state the tool's input and output, identify the training data it needs, and explain the ethical principle that deserves particular attention." : "HS nêu đầu vào, đầu ra của công cụ, xác định dữ liệu cần để huấn luyện và giải thích nguyên tắc đạo đức cần đặc biệt lưu ý.")
-        : (englishOutput ? "Learners complete this task responsibly, compare the result with lesson evidence, and explain their conclusion." : "HS thực hiện riêng nhiệm vụ này, đối chiếu kết quả với minh chứng của bài học và giải thích kết luận."),
+        ? (englishOutput ? "The teacher asks each group to propose a simple AI tool for a school or local problem, state its input and output, identify the training data it needs, and explain the key ethical principle." : "GV yêu cầu mỗi nhóm đề xuất một công cụ AI đơn giản giải quyết một việc ở trường hoặc địa phương, nêu đầu vào, đầu ra, dữ liệu cần huấn luyện và nguyên tắc đạo đức cần đặc biệt lưu ý.")
+        : (englishOutput ? `The teacher assigns one AI task that demonstrates ${indicator.indicator}, and asks learners to verify the result with reliable lesson evidence while retaining human responsibility for the final decision.` : `GV giao một nhiệm vụ AI để thể hiện ${indicator.indicator}, yêu cầu HS kiểm chứng kết quả bằng nguồn tin cậy hoặc minh chứng của bài học và giữ quyền quyết định cuối cùng của con người.`),
+      "",
       "", "", activityCode, 0,
     );
   });
@@ -1356,6 +1366,7 @@ function normalizePpct(value: unknown, body: RequestBody) {
 
 async function runProvider(provider: Provider, model: string, prompt: string, body: RequestBody, clientKeys: string[] = []) {
   const keys = getKeys(provider, clientKeys);
+  const images = sourceImages(body);
   if (!keys.length) throw Object.assign(new Error(`Chưa cấu hình khóa ${provider.toUpperCase()}.`), { status: 503 });
   let lastError: unknown;
   const kiraModels = provider === "kira" ? await getKiraChatModels(keys[0]) : [];
@@ -1369,12 +1380,12 @@ async function runProvider(provider: Provider, model: string, prompt: string, bo
       try {
         const activeModel = models[modelIndex];
         const text = provider === "openai"
-          ? await callOpenAI(keys[index], activeModel, prompt)
+          ? await callOpenAI(keys[index], activeModel, prompt, images)
           : provider === "gemini"
-            ? await callGemini(keys[index], activeModel, prompt)
+            ? await callGemini(keys[index], activeModel, prompt, images)
             : provider === "kimi"
-              ? await callKimi(keys[index], activeModel, prompt)
-              : await callKira(keys[index], activeModel, prompt);
+              ? await callKimi(keys[index], activeModel, prompt, images)
+              : await callKira(keys[index], activeModel, prompt, images);
         if (!text) throw new Error("AI không trả về nội dung.");
         const parsed = normalizeScientificTree(JSON.parse(stripJsonFence(text)));
         return { plan: body.task === "ppct" ? normalizePpct(parsed, body) : normalizePlan(parsed, body), keySlot: index + 1, model: activeModel };
