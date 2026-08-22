@@ -311,8 +311,8 @@ ${englishOutput ? "QUY TẮC NGÔN NGỮ TUYỆT ĐỐI: Môn học là Tiếng 
 0. Chỉ tạo và đưa vào KHBD những Tùy chọn nâng cao có trong mục “Nội dung tích hợp” ở trên. Mục nào giáo viên không chọn thì tuyệt đối không tự bổ sung nội dung đặc thù của mục đó. Các thành phần bắt buộc của KHBD gồm mục tiêu, thiết bị, bốn hoạt động và đánh giá vẫn phải đầy đủ.
 1. Nếu là Tiểu học, bám Công văn 2345; nếu là THCS/THPT, bám Công văn 5512.
 2. Mục tiêu phải bám sát yêu cầu cần đạt của bài học, gồm kiến thức, năng lực chung, năng lực đặc thù và phẩm chất; dùng động từ quan sát/đánh giá được, không viết chung chung.
-3. Có đủ bốn hoạt động: Mở đầu/Khởi động; Hình thành kiến thức mới; Luyện tập; Vận dụng. Với mỗi tiết tăng thêm, phải mở rộng nội dung và thời lượng tương ứng, không lặp lại máy móc.
-4. Mỗi hoạt động bắt buộc có: a) Mục tiêu; b) Nội dung; c) Sản phẩm học tập; d) Tổ chức thực hiện đúng bốn bước: Chuyển giao nhiệm vụ; Thực hiện nhiệm vụ; Báo cáo, thảo luận; Kết luận, nhận định.
+3. Có đủ bốn hoạt động lớn: Mở đầu/Khởi động; Hình thành kiến thức mới; Luyện tập; Vận dụng. Riêng B. Hình thành kiến thức mới phải đọc đúng mục lục, đề mục và nội dung của bài trong SGK đã khớp tên, sau đó chia thành 2–5 tiểu hoạt động B.1, B.2, B.3... theo đúng thứ tự các mục kiến thức; không gom toàn bộ kiến thức vào một hoạt động B chung chung. Với mỗi tiết tăng thêm, phải mở rộng nội dung và thời lượng tương ứng, không lặp lại máy móc.
+4. Mỗi hoạt động A/C/D và từng tiểu hoạt động B.1/B.2... bắt buộc có: a) Mục tiêu; b) Nội dung; c) Sản phẩm học tập; d) Tổ chức thực hiện đúng bốn bước: Chuyển giao nhiệm vụ; Thực hiện nhiệm vụ; Báo cáo, thảo luận; Kết luận, nhận định; và Kiểm tra, đánh giá. Không được chỉ ghi tên phiếu học tập hoặc “HS trả lời”.
 5. Tổng thời lượng các hoạt động phù hợp số tiết.
 6. Cách tổ chức phải cụ thể: giáo viên nói/làm gì, học sinh thực hiện cá nhân/cặp/nhóm ra sao, câu lệnh hoặc câu hỏi nào được dùng, sản phẩm nào phải nộp và tiêu chí nào để đánh giá.
 7. Bố cục ${form.columns || "2 cột"}: dữ liệu procedure vẫn phải đủ bốn bước; giao diện sẽ tự trình bày đúng số cột giáo viên chọn.
@@ -323,12 +323,12 @@ ${englishOutput ? "QUY TẮC NGÔN NGỮ TUYỆT ĐỐI: Môn học là Tiếng 
 12. Nếu chọn năng lực AI: ${ppctMatch.ai.length ? (englishOutput ? "ưu tiên các mã Năng lực AI đã đối chiếu từ PPCT và dịch chính xác biểu hiện sang tiếng Anh" : "ưu tiên các mã và biểu hiện Năng lực AI đã đối chiếu từ PPCT ở trên") : `chỉ chọn những chỉ báo phù hợp bài học; chỉ dùng mã có thật riêng của lớp ${grade} theo Quyết định 2422: ${aiCodes}`}. Không lấy mã của lớp khác và không tự tạo số thứ tự. Mỗi mã là một chỉ báo độc lập, gắn với đúng một hoạt động A/B/C/D và không dùng chung hoạt động với mã năng lực khác. Nếu tổng số mã Năng lực số và AI vượt quá số hoạt động, chỉ giữ tối đa bốn mã phù hợp trực tiếp nhất, không dồn nhiều mã vào một hoạt động. Nếu không chọn thì trả về mảng rỗng.
 13. Trường assessment của từng hoạt động chỉ mô tả cách đánh giá tự nhiên, không lặp lại mã chỉ báo Năng lực số hoặc Năng lực AI; mỗi mã chỉ xuất hiện trong một đoạn tích hợp riêng của tiến trình.
 14. Với môn Toán, Vật lí, Hóa học, Sinh học: mọi mục tiêu, nội dung, câu hỏi, đáp án và sản phẩm phải giữ đúng công thức, ký hiệu, chỉ số trên/dưới, vectơ, đơn vị và phương trình phản ứng. Ưu tiên Unicode tương thích trình duyệt và Word: x², aₙ, √, ∑, ∫, Δ, F⃗, v = s/t, H₂SO₄, 2H₂ + O₂ → 2H₂O, ADN, kiểu gen AaBb. Không dùng hình ảnh thay cho công thức.
-15. Nếu có nguồn đã khớp tên bài, trường sourceSynthesis phải rút ra đúng nội dung phục vụ Yêu cầu cần đạt: ý chính cốt lõi; công thức/kí hiệu; thí nghiệm hoặc thực hành; hướng dẫn bài tập; hình/sơ đồ minh họa nên dùng và vị trí chèn. Đây chỉ là dữ liệu nội bộ: phải phân bổ nội dung phù hợp vào mục tiêu, thiết bị và các hoạt động; KHÔNG tạo một mục riêng có tên “Nội dung cốt lõi đã đối chiếu”. Khi không có KHBD cũ/mẫu khớp bài, trường product của từng hoạt động phải ghi Sản phẩm dự kiến cụ thể dựa trên đúng bài trong SGK, đặc biệt Hoạt động B phải chứa các ý chính cần trình bày để đáp ứng Yêu cầu cần đạt. Không bịa chi tiết không có căn cứ và không lấy nội dung của bài khác.
+15. Nếu có nguồn đã khớp tên bài, trường sourceSynthesis phải rút ra đúng nội dung phục vụ Yêu cầu cần đạt: các đề mục SGK; ý chính cốt lõi theo từng đề mục; công thức/kí hiệu; thí nghiệm hoặc thực hành; hướng dẫn bài tập; hình/sơ đồ minh họa nên dùng và vị trí chèn. Đây chỉ là dữ liệu nội bộ: phải phân bổ nội dung phù hợp vào mục tiêu, thiết bị và các hoạt động; KHÔNG tạo một mục riêng có tên “Nội dung cốt lõi đã đối chiếu”. Khi không có KHBD cũ/mẫu khớp bài, trường product của từng tiểu hoạt động B.1/B.2... phải nêu cụ thể kiến thức HS cần trình bày hoặc kết luận từ đúng mục SGK tương ứng, gồm khái niệm, đặc điểm, quy tắc, công thức, kết quả thí nghiệm hay cách giải nếu có; không chỉ ghi “phiếu học tập”, “câu trả lời” hoặc “sản phẩm nhóm”. Không bịa chi tiết không có căn cứ và không lấy nội dung của bài khác.
 16. advancedContent phải tuân thủ từng lựa chọn: warmup chỉ có dữ liệu khi chọn Khởi động; timeline chỉ khi chọn Dòng thời gian; mindMap chỉ khi chọn Đồ họa thông tin/Sơ đồ tư duy; stemProcess chỉ khi chọn Bài học STEM; learningGame chỉ khi chọn Trò chơi học tập; defenseIntegration chỉ khi chọn Giáo dục quốc phòng và an ninh. Mục không chọn phải trả về mảng rỗng hoặc đối tượng rỗng.
 17. Nếu có KHBD cũ/mẫu đã khớp, nội dung mới phải bám bố cục, thứ tự mục và cách tổ chức của mẫu. Giữ nguyên các mục a) Mục tiêu, b) Nội dung, c) Sản phẩm, d) Tổ chức thực hiện; nội dung tích hợp phải hòa vào hoạt động phù hợp, không tạo phần thuyết minh kỹ thuật tách rời làm vỡ cấu trúc mẫu.
 18. MỖI mã Năng lực số hoặc Năng lực AI phải được tích hợp RIÊNG LẺ tại Bước 1 – Chuyển giao nhiệm vụ của một hoạt động phù hợp. Tiêu đề chỉ chứa đúng một mã, ví dụ “Tích hợp giáo dục AI (10.C4.1): …”; tuyệt đối không viết “(10.C4.1, 10.C4.MR1)” và không ghép biểu hiện của nhiều mã trong cùng đoạn. Mỗi hoạt động chỉ được chứa tối đa một mã năng lực; các mã khác phải phân bổ sang hoạt động A/B/C/D còn trống. Mỗi đoạn phải liền mạch, ngắn gọn, nêu rõ việc GV giao nhiệm vụ và HS thực hiện trong bối cảnh bài học; không lặp sang bước khác, sản phẩm, đánh giá hoặc mục thuyết minh riêng. Với mã 12.C2.1, nhiệm vụ yêu cầu HS đề xuất một công cụ AI giải quyết việc cụ thể ở trường/địa phương, xác định đầu vào, đầu ra, dữ liệu huấn luyện và nguyên tắc đạo đức cần lưu ý. Phải tự viết nhiệm vụ đúng tên bài, môn học, yêu cầu cần đạt và đúng biểu hiện của riêng mã đó; không sao chép tình huống không liên quan. Không tạo câu hay tiêu đề “Thể hiện đủ: Hoạt động của giáo viên; Hoạt động của học sinh; Sản phẩm/minh chứng; Công cụ và tiêu chí đánh giá”.
 19. MỖI Tùy chọn nâng cao đã chọn chỉ được hòa vào đúng MỘT lần, thành MỘT đoạn liền mạch trong đúng MỘT bước của MỘT hoạt động phù hợp. Có thể dùng tiêu đề ngắn như “Khởi động:”, “Củng cố:”, “Sơ đồ tư duy:”, “Bài học STEM:” để nhận diện; không lặp nội dung sang bước khác, sản phẩm, đánh giá, không dùng nhãn kỹ thuật đặt trong ngoặc vuông và không tạo bản tóm tắt bên ngoài tiến trình.
-20. Chỉ trả về đúng bốn hoạt động A, B, C, D đã có: Mở đầu/Khởi động; Hình thành kiến thức mới; Luyện tập; Vận dụng. TUYỆT ĐỐI không tạo hoạt động mới, tiểu hoạt động 2.x hoặc mục tích hợp độc lập. Khi bố cục là 2 cột, cột trái là “Sản phẩm dự kiến”, cột phải là “Hoạt động của giáo viên và học sinh”; bốn bước được trình bày nối tiếp trong cột phải. Phiếu học tập hoặc bảng kiểm chỉ đưa vào phụ lục khi thật sự phục vụ hoạt động.
+20. Chỉ trả về đúng bốn hoạt động lớn A, B, C, D: Mở đầu/Khởi động; Hình thành kiến thức mới; Luyện tập; Vận dụng. Không tạo hoạt động lớn thứ năm hoặc mục tích hợp độc lập; riêng hoạt động B bắt buộc được phép và phải chia thành các tiểu hoạt động B.1, B.2... theo đề mục SGK. Khi bố cục là 2 cột, cột trái là “Sản phẩm dự kiến” chứa kiến thức cụ thể của từng tiểu hoạt động, cột phải là “Hoạt động của giáo viên và học sinh” chứa đủ bốn bước và nội dung tích hợp đúng vị trí. Khi bố cục là 3 cột, tách đúng hoạt động GV, hoạt động HS và Sản phẩm dự kiến của từng bước. Phiếu học tập hoặc bảng kiểm chỉ đưa vào phụ lục khi thật sự phục vụ hoạt động.
 
 JSON phải đúng cấu trúc:
 {
@@ -357,7 +357,25 @@ JSON phải đúng cấu trúc:
       {"step": "${englishOutput ? "Perform the task" : "Thực hiện nhiệm vụ"}", "teacher": "string", "student": "string", "product": "string"},
       {"step": "${englishOutput ? "Report and discuss" : "Báo cáo, thảo luận"}", "teacher": "string", "student": "string", "product": "string"},
       {"step": "${englishOutput ? "Conclude and provide feedback" : "Kết luận, nhận định"}", "teacher": "string", "student": "string", "product": "string"}
-    ]
+    ],
+    "subActivities": [{
+      "code": "B.1",
+      "title": "đúng tên đề mục SGK",
+      "duration": "string",
+      "objective": "string",
+      "content": "string",
+      "teacherActions": ["string"],
+      "studentActions": ["string"],
+      "product": "nội dung kiến thức cụ thể HS phải nêu được theo đúng đề mục SGK",
+      "assessment": "string",
+      "differentiation": "string",
+      "procedure": [
+        {"step": "${englishOutput ? "Assign the task" : "Chuyển giao nhiệm vụ"}", "teacher": "string", "student": "string", "product": "string"},
+        {"step": "${englishOutput ? "Perform the task" : "Thực hiện nhiệm vụ"}", "teacher": "string", "student": "string", "product": "string"},
+        {"step": "${englishOutput ? "Report and discuss" : "Báo cáo, thảo luận"}", "teacher": "string", "student": "string", "product": "string"},
+        {"step": "${englishOutput ? "Conclude and provide feedback" : "Kết luận, nhận định"}", "teacher": "string", "student": "string", "product": "string"}
+      ]
+    }]
   }],
   "questions": [{"question": "string", "answer": "string"}],
   "slides": [{"number": 1, "title": "string", "bullets": ["string"], "visualSuggestion": "string"}],
@@ -772,6 +790,16 @@ function normalizePlan(value: unknown, body: RequestBody) {
     activities: activities.map((activityValue, index) => {
       const activity = activityValue && typeof activityValue === "object" ? activityValue as Record<string, unknown> : {};
       const procedure = Array.isArray(activity.procedure) ? activity.procedure : [];
+      const subActivities = Array.isArray(activity.subActivities) ? activity.subActivities : [];
+      const normalizeProcedure = (items: unknown[], fallbackProduct: unknown) => items.map((stepValue, stepIndex) => {
+        const step = stepValue && typeof stepValue === "object" ? stepValue as Record<string, unknown> : {};
+        return {
+          step: String(step.step || (englishOutput ? ["Assign the task", "Perform the task", "Report and discuss", "Conclude and provide feedback"] : ["Chuyển giao nhiệm vụ", "Thực hiện nhiệm vụ", "Báo cáo, thảo luận", "Kết luận, nhận định"])[stepIndex] || (englishOutput ? `Step ${stepIndex + 1}` : `Bước ${stepIndex + 1}`)),
+          teacher: String(step.teacher || (englishOutput ? "The teacher organises, monitors, and supports the activity." : "Giáo viên tổ chức, theo dõi và hỗ trợ.")),
+          student: String(step.student || (englishOutput ? "Learners complete the task and present their product." : "Học sinh thực hiện nhiệm vụ và báo cáo sản phẩm.")),
+          product: String(step.product || fallbackProduct || (englishOutput ? "Learning product." : "Sản phẩm học tập.")),
+        };
+      });
       return {
         code: String(activity.code || String.fromCharCode(65 + index)),
         title: String(activity.title || (englishOutput ? `Activity ${index + 1}` : `Hoạt động ${index + 1}`)),
@@ -783,15 +811,24 @@ function normalizePlan(value: unknown, body: RequestBody) {
         product: String(activity.product || (englishOutput ? "Learners' learning product." : "Sản phẩm học tập của học sinh.")),
         assessment: String(activity.assessment || (englishOutput ? "Observation and product-based assessment." : "Quan sát và đánh giá theo sản phẩm học tập.")),
         differentiation: String(activity.differentiation || (englishOutput ? "Support is adjusted to learners' levels of readiness." : "Hỗ trợ phù hợp theo mức độ đáp ứng của học sinh.")),
-        procedure: procedure.map((stepValue, stepIndex) => {
-          const step = stepValue && typeof stepValue === "object" ? stepValue as Record<string, unknown> : {};
+        procedure: normalizeProcedure(procedure, activity.product),
+        subActivities: subActivities.map((subValue, subIndex) => {
+          const sub = subValue && typeof subValue === "object" ? subValue as Record<string, unknown> : {};
+          const subProcedure = Array.isArray(sub.procedure) ? sub.procedure : [];
           return {
-            step: String(step.step || (englishOutput ? ["Assign the task", "Perform the task", "Report and discuss", "Conclude and provide feedback"] : ["Chuyển giao nhiệm vụ", "Thực hiện nhiệm vụ", "Báo cáo, thảo luận", "Kết luận, nhận định"])[stepIndex] || (englishOutput ? `Step ${stepIndex + 1}` : `Bước ${stepIndex + 1}`)),
-            teacher: String(step.teacher || (englishOutput ? "The teacher organises, monitors, and supports the activity." : "Giáo viên tổ chức, theo dõi và hỗ trợ.")),
-            student: String(step.student || (englishOutput ? "Learners complete the task and present their product." : "Học sinh thực hiện nhiệm vụ và báo cáo sản phẩm.")),
-            product: String(step.product || activity.product || (englishOutput ? "Learning product." : "Sản phẩm học tập.")),
+            code: String(sub.code || `B.${subIndex + 1}`),
+            title: String(sub.title || (englishOutput ? `Knowledge topic ${subIndex + 1}` : `Nội dung ${subIndex + 1}`)),
+            duration: String(sub.duration || ""),
+            objective: String(sub.objective || ""),
+            content: String(sub.content || ""),
+            teacherActions: strings(sub.teacherActions),
+            studentActions: strings(sub.studentActions),
+            product: String(sub.product || ""),
+            assessment: String(sub.assessment || ""),
+            differentiation: String(sub.differentiation || ""),
+            procedure: normalizeProcedure(subProcedure, sub.product),
           };
-        }),
+        }).filter((sub) => sub.title || sub.content || sub.product),
       };
     }),
     questions: questionRequested ? (Array.isArray(source.questions) ? source.questions : []).map((itemValue) => {
@@ -875,6 +912,7 @@ function normalizePlan(value: unknown, body: RequestBody) {
         student: englishOutput ? "Learners complete the task and present their product." : "Học sinh thực hiện nhiệm vụ và báo cáo sản phẩm.",
         product: englishOutput ? "Learning product." : "Sản phẩm học tập.",
       })),
+      subActivities: [],
     });
   });
   plan.activities.sort((left, right) => "ABCD".indexOf(left.code.toUpperCase()) - "ABCD".indexOf(right.code.toUpperCase()));
@@ -887,6 +925,63 @@ function normalizePlan(value: unknown, body: RequestBody) {
       product: activity.product,
     }));
   });
+
+  const knowledgeActivity = plan.activities.find((activity) => activity.code.toUpperCase() === "B");
+  const lessonKnowledge = plan.sourceSynthesis.coreKnowledge.length ? plan.sourceSynthesis.coreKnowledge : plan.objectives.knowledge;
+  if (knowledgeActivity) {
+    const genericProduct = /^(?:sản phẩm học tập|phiếu học tập|câu trả lời|learning product|worksheet|answers?)(?: của học sinh)?[.!]?$/i;
+    const compactHeading = (value: string, index: number) => {
+      const cleaned = value.replace(/^\s*(?:\d+(?:\.\d+)*|[IVX]+|[-–—•])\s*[.):\-–—]?\s*/i, "").trim();
+      return (cleaned.split(/[:.;]/)[0].trim() || (englishOutput ? `Knowledge topic ${index + 1}` : `Nội dung ${index + 1}`)).slice(0, 100);
+    };
+    if (!knowledgeActivity.subActivities.length) {
+      const sourceItems = lessonKnowledge.length ? lessonKnowledge.slice(0, 5) : [knowledgeActivity.content];
+      knowledgeActivity.subActivities = sourceItems.map((item, index) => {
+        const product = englishOutput ? `Learners accurately state and explain: ${item}.` : `HS nêu và giải thích chính xác: ${item}.`;
+        return {
+          code: `B.${index + 1}`,
+          title: compactHeading(item, index),
+          duration: "",
+          objective: englishOutput ? `Explain and apply: ${item}.` : `Trình bày, giải thích và vận dụng được: ${item}.`,
+          content: item,
+          teacherActions: [],
+          studentActions: [],
+          product,
+          assessment: englishOutput ? `Assess the accuracy of the explanation and its evidence for ${item}.` : `Đánh giá độ chính xác của nội dung, lập luận và minh chứng về ${item}.`,
+          differentiation: knowledgeActivity.differentiation,
+          procedure: defaultSteps.map((step, stepIndex) => ({
+            step,
+            teacher: stepIndex === 0
+              ? (englishOutput ? `Assign a task to explore “${item}” using the matching textbook section.` : `GV giao nhiệm vụ tìm hiểu “${item}” theo đúng đề mục tương ứng trong SGK.`)
+              : stepIndex === 1 ? (englishOutput ? "Monitor, question, and support learners while they analyse the textbook evidence." : "GV theo dõi, đặt câu hỏi gợi mở và hỗ trợ HS phân tích minh chứng trong SGK.")
+              : stepIndex === 2 ? (englishOutput ? "Invite groups to present and organise peer discussion." : "GV mời đại diện trình bày, tổ chức nhận xét và thảo luận.")
+              : (englishOutput ? `Confirm the core knowledge: ${item}.` : `GV chuẩn hóa kiến thức trọng tâm: ${item}.`),
+            student: stepIndex === 0
+              ? (englishOutput ? "Receive the task and identify the relevant textbook heading." : "HS tiếp nhận nhiệm vụ, xác định đề mục SGK cần nghiên cứu.")
+              : stepIndex === 1 ? (englishOutput ? "Read, discuss, and record the relevant evidence." : "HS đọc SGK, thảo luận và ghi lại thông tin, minh chứng liên quan.")
+              : stepIndex === 2 ? (englishOutput ? "Present the result, question peers, and revise the response." : "HS trình bày kết quả, trao đổi, phản biện và điều chỉnh câu trả lời.")
+              : (englishOutput ? "Record and use the confirmed knowledge." : "HS ghi nhận và vận dụng kiến thức đã được chuẩn hóa."),
+            product,
+          })),
+        };
+      });
+    }
+    knowledgeActivity.subActivities = knowledgeActivity.subActivities.slice(0, 5).map((sub, index) => {
+      const assignedKnowledge = lessonKnowledge[index] || sub.content || sub.title;
+      const specificProduct = englishOutput ? `Learners accurately state and explain: ${assignedKnowledge}.` : `HS nêu và giải thích chính xác: ${assignedKnowledge}.`;
+      sub.code = `B.${index + 1}`;
+      sub.title = compactHeading(sub.title || assignedKnowledge, index);
+      sub.objective ||= englishOutput ? `Explain and apply: ${assignedKnowledge}.` : `Trình bày, giải thích và vận dụng được: ${assignedKnowledge}.`;
+      sub.content ||= assignedKnowledge;
+      if (!sub.product || genericProduct.test(sub.product.trim())) sub.product = specificProduct;
+      sub.assessment ||= englishOutput ? `Assess accuracy and evidence for ${assignedKnowledge}.` : `Đánh giá độ chính xác của nội dung và minh chứng về ${assignedKnowledge}.`;
+      if (!sub.procedure.length) sub.procedure = defaultSteps.map((step) => ({ step, teacher: englishOutput ? "The teacher assigns, monitors, discusses, and confirms the textbook task." : "GV giao nhiệm vụ, theo dõi, tổ chức thảo luận và chuẩn hóa kiến thức theo SGK.", student: englishOutput ? "Learners read, discuss, present, and revise the result." : "HS đọc SGK, thảo luận, trình bày và hoàn thiện kết quả.", product: sub.product }));
+      sub.procedure.forEach((step) => { if (!step.product || genericProduct.test(step.product.trim())) step.product = sub.product; });
+      return sub;
+    });
+    knowledgeActivity.content = knowledgeActivity.subActivities.map((sub) => `${sub.code}. ${sub.title}`).join("; ");
+    knowledgeActivity.product = knowledgeActivity.subActivities.map((sub) => `${sub.code}: ${sub.product}`).join(" ");
+  }
 
   const findActivity = (code: string, fallback: string) => plan.activities.find((activity) => activity.code.toUpperCase() === code.toUpperCase()) || plan.activities.find((activity) => activity.code.toUpperCase() === fallback) || plan.activities[0];
   if (!hasMatchedOldLessonPlan) {
@@ -985,23 +1080,27 @@ function normalizePlan(value: unknown, body: RequestBody) {
     return positions.length ? value.slice(0, Math.min(...positions)).trim() : value;
   };
   plan.activities.forEach((activity) => {
-    activity.teacherActions = activity.teacherActions.filter((item) => !integrationPattern.test(item) && !selectedIndicatorCodes.some((code) => item.includes(code)));
-    activity.studentActions = activity.studentActions.filter((item) => !integrationPattern.test(item) && !selectedIndicatorCodes.some((code) => item.includes(code)));
-    activity.product = stripIndicatorTail(stripIntegrationTail(activity.product));
-    activity.assessment = stripIndicatorTail(stripIntegrationTail(activity.assessment));
-    activity.procedure.forEach((step) => {
-      step.teacher = stripIndicatorTail(stripIntegrationTail(step.teacher));
-      step.student = stripIndicatorTail(stripIntegrationTail(step.student));
-      step.product = stripIndicatorTail(stripIntegrationTail(step.product));
+    [activity, ...activity.subActivities].forEach((part) => {
+      part.teacherActions = part.teacherActions.filter((item) => !integrationPattern.test(item) && !selectedIndicatorCodes.some((code) => item.includes(code)));
+      part.studentActions = part.studentActions.filter((item) => !integrationPattern.test(item) && !selectedIndicatorCodes.some((code) => item.includes(code)));
+      part.product = stripIndicatorTail(stripIntegrationTail(part.product));
+      part.assessment = stripIndicatorTail(stripIntegrationTail(part.assessment));
+      part.procedure.forEach((step) => {
+        step.teacher = stripIndicatorTail(stripIntegrationTail(step.teacher));
+        step.student = stripIndicatorTail(stripIntegrationTail(step.student));
+        step.product = stripIndicatorTail(stripIntegrationTail(step.product));
+      });
     });
   });
   const injectIntoActivity = (code: string, label: string, teacher: string, student: string, product: string, assessment: string, fallback = "B", stepIndex = 3) => {
     const activity = findActivity(code, fallback);
     if (!activity) return;
-    const targetStep = activity.procedure[stepIndex] || activity.procedure[0] || activity.procedure[activity.procedure.length - 1];
+    const targetPart = activity.code.toUpperCase() === "B" && activity.subActivities.length ? activity.subActivities[0] : activity;
+    const targetStep = targetPart.procedure[stepIndex] || targetPart.procedure[0] || targetPart.procedure[targetPart.procedure.length - 1];
     if (!targetStep) return;
-    const compactParagraph = `${label} ${teacher} ${student}`.replace(/\s+/g, " ").trim();
-    targetStep.teacher = `${targetStep.teacher}${targetStep.teacher ? " " : ""}${compactParagraph}`;
+    const teacherParagraph = `${label} ${teacher}`.replace(/\s+/g, " ").trim();
+    targetStep.teacher = `${targetStep.teacher}${targetStep.teacher ? " " : ""}${teacherParagraph}`;
+    targetStep.student = `${targetStep.student}${targetStep.student ? " " : ""}${student}`.replace(/\s+/g, " ").trim();
   };
 
   competencyPlacements.forEach(({ kind, indicator, activityCode }) => {

@@ -70,6 +70,28 @@ type CompetencyIndicator = {
   assessmentTool: string;
 };
 
+type LessonProcedureStep = {
+  step: string;
+  teacher: string;
+  student: string;
+  product: string;
+};
+
+type LessonActivity = {
+  code: string;
+  title: string;
+  duration: string;
+  objective: string;
+  content: string;
+  teacherActions: string[];
+  studentActions: string[];
+  product: string;
+  assessment: string;
+  differentiation: string;
+  procedure?: LessonProcedureStep[];
+  subActivities?: LessonActivity[];
+};
+
 type AIPlan = {
   title: string;
   summary: string;
@@ -80,24 +102,7 @@ type AIPlan = {
     qualities: string[];
   };
   equipment: string[];
-  activities: Array<{
-    code: string;
-    title: string;
-    duration: string;
-    objective: string;
-    content: string;
-    teacherActions: string[];
-    studentActions: string[];
-    product: string;
-    assessment: string;
-    differentiation: string;
-    procedure?: Array<{
-      step: string;
-      teacher: string;
-      student: string;
-      product: string;
-    }>;
-  }>;
+  activities: LessonActivity[];
   questions: Array<{ question: string; answer: string }>;
   slides: Array<{ number: number; title: string; bullets: string[]; visualSuggestion: string }>;
   accommodations: string[];
@@ -227,6 +232,22 @@ export default function Home() {
       return <span className="integrated-procedure-note" key={`${index}-${match[1]}`}>{index > 0 && <br />}<strong><em>{match[1]}</em></strong><br />{section.slice(match[0].length)}</span>;
     })}</>;
   };
+
+  const renderActivityDetails = (activity: LessonActivity, keyPrefix: string) => (
+    <>
+      <p><b>a) {docText.objective}:</b> {activity.objective}</p>
+      <p><b>b) {docText.content}:</b> {activity.content}</p>
+      <p><b>c) {docText.learningProduct}:</b> {activity.product}</p>
+      <p><b>d) {docText.implementation}:</b></p>
+      {activity.procedure?.length ? <div className={`procedure-layout columns-${form.columns.charAt(0)}`}>
+        {form.columns.startsWith("1") ? <ol>{activity.procedure.map((step, index) => <li key={`${keyPrefix}-${index}`}><b>{step.step}:</b> {renderProcedureText(step.teacher)} {renderProcedureText(step.student)}</li>)}</ol>
+          : form.columns.startsWith("2") ? <table><thead><tr><th>{docText.expectedProduct}</th><th>{docText.combinedActivity}</th></tr></thead><tbody><tr><td><p>{activity.product}</p></td><td><ol>{activity.procedure.map((step, index) => <li key={`${keyPrefix}-${index}`}><b>{step.step}:</b> {renderProcedureText(step.teacher)} {renderProcedureText(step.student)}</li>)}</ol></td></tr></tbody></table>
+            : <table><thead><tr><th>{docText.teacherActivity}</th><th>{docText.learnerActivity}</th><th>{docText.expectedProduct}</th></tr></thead><tbody>{activity.procedure.map((step, index) => <tr key={`${keyPrefix}-${index}`}><td><b>{step.step}:</b> {renderProcedureText(step.teacher)}</td><td><b>{step.step}:</b> {renderProcedureText(step.student)}</td><td>{step.product || activity.product}</td></tr>)}</tbody></table>}
+      </div> : <div className="action-columns"><div><b>{docText.teacherActivity}</b><ol>{activity.teacherActions.map((item) => <li key={item}>{renderProcedureText(item)}</li>)}</ol></div><div><b>{docText.learnerActivity}</b><ol>{activity.studentActions.map((item) => <li key={item}>{renderProcedureText(item)}</li>)}</ol></div></div>}
+      <p><b>{docText.assessment}:</b> {activity.assessment}</p>
+      {enabled.includes("inclusive") && <p><b>{docText.differentiation}:</b> {activity.differentiation}</p>}
+    </>
+  );
 
   const refreshProviderStatus = () => {
     fetch("/api/ai/status")
@@ -572,9 +593,60 @@ export default function Home() {
           }
           addedSectionCount += 1;
         };
+        const directChildren = (element: Element, localName: string) => Array.from(element.children).filter((node) => node.localName === localName) as Element[];
+        const elementText = (element: Element) => xmlElements(element, "t").map((node) => node.textContent || "").join(" ").replace(/\s+/g, " ").trim();
+        const insertIntoTemplateTable = (title: string, teacherLines: string[], studentLines: string[], productLines: string[], anchors: string[]) => {
+          const normalizedAnchors = anchors.map(normalizeAnchorText);
+          for (const table of xmlElements(wordXml, "tbl") as Element[]) {
+            const rows = directChildren(table, "tr");
+            let productIndex = -1;
+            let combinedIndex = -1;
+            let teacherIndex = -1;
+            let studentIndex = -1;
+            let headerRowIndex = -1;
+            rows.forEach((row, rowIndex) => {
+              const cells = directChildren(row, "tc");
+              const labels = cells.map((cell) => normalizeAnchorText(elementText(cell)));
+              const nextProduct = labels.findIndex((label) => label.includes("san pham du kien") || label.includes("san pham hoc tap") || label.includes("expected learning product"));
+              const nextCombined = labels.findIndex((label) => (label.includes("giao vien") && label.includes("hoc sinh")) || label.includes("teacher and learner"));
+              const nextTeacher = labels.findIndex((label) => (label.includes("hoat dong cua giao vien") || label.includes("teacher activit")) && !label.includes("hoc sinh") && !label.includes("learner"));
+              const nextStudent = labels.findIndex((label) => label.includes("hoat dong cua hoc sinh") || label.includes("learner activit") || label.includes("student activit"));
+              if (nextProduct >= 0 && (nextCombined >= 0 || (nextTeacher >= 0 && nextStudent >= 0))) {
+                productIndex = nextProduct;
+                combinedIndex = nextCombined;
+                teacherIndex = nextTeacher;
+                studentIndex = nextStudent;
+                headerRowIndex = rowIndex;
+              }
+            });
+            if (headerRowIndex < 0) continue;
+            const anchorRowIndex = rows.findIndex((row) => normalizedAnchors.some((anchor) => normalizeAnchorText(elementText(row)).includes(anchor)));
+            if (anchorRowIndex < 0) continue;
+            const minimumCellCount = Math.max(productIndex, combinedIndex, teacherIndex, studentIndex) + 1;
+            const targetRow = rows.slice(anchorRowIndex).find((row, offset) => anchorRowIndex + offset > headerRowIndex && directChildren(row, "tc").length >= minimumCellCount);
+            if (!targetRow) continue;
+            const cells = directChildren(targetRow, "tc");
+            const appendLines = (cellIndex: number, lines: string[]) => {
+              if (cellIndex < 0 || !cells[cellIndex]) return;
+              const cell = cells[cellIndex];
+              const anchor = (xmlElements(cell, "p") as Element[]).at(-1);
+              lines.map((line) => String(line || "").trim()).filter(Boolean).forEach((line, index) => cell.appendChild(createWordParagraph(line, anchor, index === 0)));
+            };
+            appendLines(productIndex, [title, ...productLines]);
+            if (combinedIndex >= 0) appendLines(combinedIndex, [title, ...teacherLines, ...studentLines]);
+            else {
+              appendLines(teacherIndex, [title, ...teacherLines]);
+              appendLines(studentIndex, [title, ...studentLines]);
+            }
+            addedSectionCount += 1;
+            return true;
+          }
+          return false;
+        };
+        const allActivityParts = plan.activities.flatMap((activity) => [activity, ...(activity.subActivities || [])]);
         const integratedProcedureLines = (labels: string[], includeWholeActivity = false, indicatorCode = "") => plan.activities.flatMap((activity) => {
           const normalizedLabels = labels.map((label) => normalizeAnchorText(label));
-          const procedure = activity.procedure || [];
+          const procedure = [activity, ...(activity.subActivities || [])].flatMap((part) => part.procedure || []);
           const matchingSteps = procedure.filter((step) => {
             const stepText = `${step.teacher} ${step.student} ${step.product}`;
             return normalizedLabels.some((label) => normalizeAnchorText(stepText).includes(label)) && (!indicatorCode || stepText.includes(indicatorCode));
@@ -599,18 +671,34 @@ export default function Home() {
           if (activityCode === "D") return ["hoạt động 4", "activity 4", "vận dụng", "application"];
           return ["hoạt động 2", "activity 2", "hình thành kiến thức", "knowledge formation"];
         };
+        const knowledgeActivity = plan.activities.find((activity) => activity.code.toUpperCase() === "B");
+        (knowledgeActivity?.subActivities || []).forEach((subActivity) => {
+          const teacherLines = [
+            `a) ${docText.objective}: ${subActivity.objective}`,
+            `b) ${docText.content}: ${subActivity.content}`,
+            `d) ${docText.implementation}:`,
+            ...(subActivity.procedure || []).map((step) => `${step.step}: ${step.teacher}`),
+            `${docText.assessment}: ${subActivity.assessment}`,
+          ];
+          const studentLines = (subActivity.procedure || []).map((step) => `${step.step}: ${step.student}`);
+          const inserted = insertIntoTemplateTable(`${subActivity.code}. ${subActivity.title}`, teacherLines, studentLines, [`c) ${docText.learningProduct}: ${subActivity.product}`], integrationAnchors(["B"]));
+          if (!inserted) insertSection(`${subActivity.code}. ${subActivity.title}`, [...teacherLines, ...studentLines, `c) ${docText.learningProduct}: ${subActivity.product}`], integrationAnchors(["B"]));
+        });
+        const insertCompetencyIntoTemplate = (item: CompetencyIndicator, kind: "digital" | "ai") => {
+          const label = kind === "digital" ? ["Tích hợp năng lực số", "Digital competence integration"] : ["Tích hợp giáo dục AI", "AI education integration"];
+          const matchingStep = allActivityParts.flatMap((part) => part.procedure || []).find((step) => {
+            const text = `${step.teacher} ${step.student}`;
+            return text.includes(item.code) && label.some((value) => normalizeAnchorText(text).includes(normalizeAnchorText(value)));
+          });
+          const title = englishDocument ? `${kind === "digital" ? "Digital competence integration" : "AI education integration"} (${item.code})` : `${kind === "digital" ? "Tích hợp năng lực số" : "Tích hợp giáo dục AI"} (${item.code})`;
+          const teacher = matchingStep?.teacher || item.indicator;
+          const student = matchingStep?.student || item.evidence;
+          if (!insertIntoTemplateTable(title, [teacher], [student], [], integrationAnchors(item.activityCodes))) insertSection(title, [teacher, student], integrationAnchors(item.activityCodes));
+        };
         if (enabled.includes("digital")) insertSection(englishDocument ? "Digital competence" : "Năng lực số", (plan.digitalCompetencyIndicators || []).map((item) => `${item.code}: ${item.indicator}`), ["năng lực đặc thù", "specific competencies", "năng lực", "competencies", "mục tiêu", "objectives"]);
-        if (enabled.includes("digital")) (plan.digitalCompetencyIndicators || []).forEach((item) => insertSection(
-          englishDocument ? `Digital competence integration (${item.code})` : `Tích hợp năng lực số (${item.code})`,
-          integratedProcedureLines(["Tích hợp năng lực số", "Digital competence integration"], false, item.code),
-          integrationAnchors(item.activityCodes),
-        ));
+        if (enabled.includes("digital")) (plan.digitalCompetencyIndicators || []).forEach((item) => insertCompetencyIntoTemplate(item, "digital"));
         if (enabled.includes("aiEducation")) insertSection(englishDocument ? "AI competence" : "Năng lực AI", (plan.aiCompetencyIndicators || []).map((item) => `${item.code}: ${item.indicator}`), ["năng lực đặc thù", "specific competencies", "năng lực", "competencies", "mục tiêu", "objectives"]);
-        if (enabled.includes("aiEducation")) (plan.aiCompetencyIndicators || []).forEach((item) => insertSection(
-          englishDocument ? `AI education integration (${item.code})` : `Tích hợp giáo dục AI (${item.code})`,
-          integratedProcedureLines(["Tích hợp giáo dục AI", "AI education integration"], false, item.code),
-          integrationAnchors(item.activityCodes),
-        ));
+        if (enabled.includes("aiEducation")) (plan.aiCompetencyIndicators || []).forEach((item) => insertCompetencyIntoTemplate(item, "ai"));
         if (enabled.includes("defense")) insertSection(englishDocument ? "National defence and security integration" : "Tích hợp giáo dục quốc phòng và an ninh", integratedProcedureLines(["Tích hợp giáo dục quốc phòng và an ninh", "National defence and security integration"]), ["hoạt động 4", "activity 4", "vận dụng", "application"]);
         if (enabled.includes("inclusive")) insertSection(englishDocument ? "Learner support" : "Hỗ trợ học sinh", integratedProcedureLines(["Hỗ trợ học sinh", "Learner support"]), ["hoạt động 2", "activity 2", "hình thành kiến thức", "knowledge formation"]);
         if (enabled.includes("active")) insertSection(englishDocument ? "Teaching method" : "Phương pháp", integratedProcedureLines(["Phương pháp", "Teaching method"]), ["hoạt động 2", "activity 2", "hình thành kiến thức", "knowledge formation"]);
@@ -637,7 +725,10 @@ export default function Home() {
     }
     const escape = (value: string) => value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[character] || character);
     const list = (items: string[]) => `<ul>${items.map((item) => `<li>${escape(item)}</li>`).join("")}</ul>`;
-    const activities = plan.activities.map((activity) => `<h4>${escape(activity.code)}. ${escape(activity.title)} (${escape(activity.duration)})</h4><p><b>a) ${docText.objective}:</b> ${escape(activity.objective)}</p><p><b>b) ${docText.content}:</b> ${escape(activity.content)}</p><p><b>c) ${docText.learningProduct}:</b> ${escape(activity.product)}</p><p><b>d) ${docText.implementation}:</b></p><table><thead><tr><th>${docText.expectedProduct}</th><th>${docText.combinedActivity}</th></tr></thead><tbody><tr><td>${escape(activity.product)}</td><td><ol>${(activity.procedure || []).map((step) => `<li><b>${escape(step.step)}:</b> ${escape(`${step.teacher} ${step.student}`)}</li>`).join("")}</ol></td></tr></tbody></table>`).join("");
+    const activityHtml = (activity: LessonActivity) => `<h4>${escape(activity.code)}. ${escape(activity.title)}${activity.duration ? ` (${escape(activity.duration)})` : ""}</h4><p><b>a) ${docText.objective}:</b> ${escape(activity.objective)}</p><p><b>b) ${docText.content}:</b> ${escape(activity.content)}</p><p><b>c) ${docText.learningProduct}:</b> ${escape(activity.product)}</p><p><b>d) ${docText.implementation}:</b></p><table><thead><tr><th>${docText.expectedProduct}</th><th>${docText.combinedActivity}</th></tr></thead><tbody><tr><td>${escape(activity.product)}</td><td><ol>${(activity.procedure || []).map((step) => `<li><b>${escape(step.step)}:</b> ${escape(`${step.teacher} ${step.student}`)}</li>`).join("")}</ol></td></tr></tbody></table><p><b>${docText.assessment}:</b> ${escape(activity.assessment)}</p>`;
+    const activities = plan.activities.map((activity) => activity.code.toUpperCase() === "B" && activity.subActivities?.length
+      ? `<h4>${escape(activity.code)}. ${escape(activity.title)} (${escape(activity.duration)})</h4>${activity.subActivities.map(activityHtml).join("")}`
+      : activityHtml(activity)).join("");
     const editedBody = documentRef.current?.innerHTML;
     const fallbackBody = `<h1>${docText.lessonPlan}</h1><h2>${escape(plan.title)}</h2><p><b>${docText.subject}:</b> ${escape(englishDocument ? "English" : form.subject)} &nbsp; <b>${docText.grade}:</b> ${escape(form.grade)} &nbsp; <b>${docText.duration}:</b> ${escape(form.periods)} ${docText.periods}</p><h3>${docText.objectives}</h3><h4>${docText.knowledge}</h4>${list(plan.objectives.knowledge)}<h4>${docText.generalCompetencies}</h4>${list(plan.objectives.generalCompetencies)}<h4>${docText.specificCompetencies}</h4>${list(plan.objectives.specificCompetencies)}<h4>4. ${docText.qualities}</h4>${list(plan.objectives.qualities)}<h3>${docText.equipment}</h3>${list(plan.equipment)}<h3>${docText.procedure}</h3>${activities}<p><b>${docText.teacher}:</b> ${escape(form.teacher)}</p>`;
     const html = `<html lang="${englishDocument ? "en" : "vi"}"><head><meta charset="utf-8"><style>@page{size:A4;margin:2cm}body{font-family:"Times New Roman","Cambria Math",serif;font-size:13pt;line-height:1.5}h1,h2{text-align:center}h3{margin-top:18pt}table{width:100%;border-collapse:collapse}th,td{border:1px solid #222;padding:7px;vertical-align:top}li{margin:3px 0}.competency-panel{margin:10px 0;padding:10px;border:1px solid #9fded7;background:#f2fbfa}.competency-panel.ai{border-color:#c7c1f4;background:#f7f6ff}.indicator-item{margin:8px 0;padding:8px;border-left:4px solid #159989;background:#fff}.competency-panel.ai .indicator-item{border-left-color:#655cf0}.indicator-code{font-weight:700}.indicator-meta{font-size:10pt;color:#555}.competency-crosswalk th{background:#eee}</style></head><body>${editedBody || fallbackBody}</body></html>`;
@@ -758,7 +849,12 @@ export default function Home() {
                   <h4>{4 + Number((plan.digitalCompetencyIndicators?.length || 0) > 0) + Number((plan.aiCompetencyIndicators?.length || 0) > 0)}. {docText.qualities}</h4><ul>{plan.objectives.qualities.map((item) => <li key={item}>{item}</li>)}</ul>
                 </section>
                 <section><h3>{docText.equipment}</h3><ul>{plan.equipment.map((item) => <li key={item}>{item}</li>)}</ul>{(plan.teachingMethods?.length || 0) > 0 && <><h4>{docText.methods}</h4><ul>{plan.teachingMethods!.map((item) => <li key={item}>{item}</li>)}</ul></>}</section>
-                <section><h3>{docText.procedure}</h3>{plan.activities.map((activity) => <div className="activity-block" key={`${activity.code}-${activity.title}`}><h4><span>{activity.code}</span>{activity.title} ({activity.duration})</h4><p><b>a) {docText.objective}:</b> {activity.objective}</p><p><b>b) {docText.content}:</b> {activity.content}</p><p><b>c) {docText.learningProduct}:</b> {activity.product}</p><p><b>d) {docText.implementation}:</b></p>{activity.procedure?.length ? <div className={`procedure-layout columns-${form.columns.charAt(0)}`}>{form.columns.startsWith("1") ? <ol>{activity.procedure.map((step) => <li key={step.step}><b>{step.step}:</b> {renderProcedureText(step.teacher)} {renderProcedureText(step.student)}</li>)}</ol> : form.columns.startsWith("2") ? <table><thead><tr><th>{docText.expectedProduct}</th><th>{docText.combinedActivity}</th></tr></thead><tbody><tr><td><p>{activity.content}</p><p>{activity.product}</p></td><td><ol>{activity.procedure.map((step) => <li key={step.step}><b>{step.step}:</b> {renderProcedureText(step.teacher)} {renderProcedureText(step.student)}</li>)}</ol></td></tr></tbody></table> : <table><thead><tr><th>{docText.teacherActivity}</th><th>{docText.learnerActivity}</th><th>{docText.expectedProduct}</th></tr></thead><tbody>{activity.procedure.map((step) => <tr key={step.step}><td><b>{step.step}:</b> {renderProcedureText(step.teacher)}</td><td><b>{step.step}:</b> {renderProcedureText(step.student)}</td><td>{step.product}</td></tr>)}</tbody></table>}</div> : <div className="action-columns"><div><b>{docText.teacherActivity}</b><ol>{activity.teacherActions.map((item) => <li key={item}>{renderProcedureText(item)}</li>)}</ol></div><div><b>{docText.learnerActivity}</b><ol>{activity.studentActions.map((item) => <li key={item}>{renderProcedureText(item)}</li>)}</ol></div></div>}<p><b>{docText.assessment}:</b> {activity.assessment}</p>{enabled.includes("inclusive") && <p><b>{docText.differentiation}:</b> {activity.differentiation}</p>}</div>)}</section>
+                <section><h3>{docText.procedure}</h3>{plan.activities.map((activity) => <div className="activity-block" key={`${activity.code}-${activity.title}`}>
+                  <h4><span>{activity.code}</span>{activity.title} ({activity.duration})</h4>
+                  {activity.code.toUpperCase() === "B" && activity.subActivities?.length
+                    ? activity.subActivities.map((subActivity, index) => <div className="knowledge-subactivity" key={`${subActivity.code}-${subActivity.title}`}><h4>{subActivity.code}. {subActivity.title}{subActivity.duration ? ` (${subActivity.duration})` : ""}</h4>{renderActivityDetails(subActivity, `sub-${index}`)}</div>)
+                    : renderActivityDetails(activity, `activity-${activity.code}`)}
+                </div>)}</section>
                 {plan.questions.length > 0 && <section className="question-section"><h3>{docText.review}</h3>{plan.questions.map((item, index) => <details key={`${index}-${item.question}`}><summary>{index + 1}. {item.question}</summary><p><b>{docText.answer}:</b> {item.answer}</p></details>)}</section>}
                 {plan.accommodations.length > 0 && <section><h3>{docText.support}</h3><ul>{plan.accommodations.map((item) => <li key={item}>{item}</li>)}</ul></section>}
                 {(plan.assessmentPlan?.length || 0) > 0 && <section><h3>{docText.assessmentPlan}</h3><ul>{plan.assessmentPlan!.map((item) => <li key={item}>{item}</li>)}</ul></section>}

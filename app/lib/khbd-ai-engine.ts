@@ -41,7 +41,7 @@ export function buildKhbdMegaInstruction(body: KhbdRequestLike) {
     "1. Ưu tiên nguồn theo thứ tự: PPCT/YCCĐ giáo viên cung cấp -> SGK đúng bài -> KHBD cũ đúng bài -> học liệu tham khảo -> kiến thức chương trình. Không trộn nội dung của bài khác.",
     "2. Trước khi viết, phải ngầm lập ma trận truy vết YCCĐ -> mục tiêu -> hoạt động -> nhiệm vụ -> sản phẩm -> đánh giá. Mọi mục tiêu phải xuất hiện trong hoạt động và mọi hoạt động phải phục vụ mục tiêu.",
     "3. Nếu không có KHBD cũ, dùng SGK/YCCĐ/PPCT đúng bài để hình thành nội dung. Sản phẩm dự kiến phải là kiến thức hoặc sản phẩm kiểm tra được, ví dụ bảng so sánh, sơ đồ, công thức, kết luận, đoạn văn, đoạn hội thoại, mã nguồn, phiếu học tập có nội dung cụ thể; không dùng các câu chung chung như 'HS trả lời', 'HS thảo luận', 'HS hoàn thành nhiệm vụ'.",
-    "4. Mỗi hoạt động có đủ: a) Mục tiêu; b) Nội dung; c) Sản phẩm; d) Tổ chức thực hiện với 4 bước: Chuyển giao - Thực hiện - Báo cáo/thảo luận - Kết luận/nhận định.",
+    "4. Riêng B. Hình thành kiến thức mới phải tách thành 2-5 hoạt động nhỏ B.1, B.2... theo đúng các đề mục nội dung của bài trong SGK. Mỗi hoạt động nhỏ có đủ: a) Mục tiêu; b) Nội dung; c) Sản phẩm học tập; d) Tổ chức thực hiện với 4 bước; Kiểm tra, đánh giá.",
     "5. Bước 1 phải ghi rõ GV giao nhiệm vụ gì, câu hỏi/câu lệnh nào, tài liệu/công cụ nào, hình thức tổ chức, thời gian và sản phẩm cần nộp. Bước 4 phải ghi rõ nội dung kiến thức được chốt, không chỉ viết 'GV chốt kiến thức'.",
     "6. Không bịa trang SGK, tác giả, YCCĐ, số tiết PPCT, mã năng lực số, mã AI, số liệu, thí nghiệm hoặc văn bản pháp lý. Nếu nguồn không đủ chắc chắn, giữ nội dung ở mức có thể xác minh từ dữ liệu đầu vào.",
     "7. Chỉ đưa vào KHBD các tùy chọn nâng cao đã được người dùng bật; không tự thêm module chưa chọn.",
@@ -79,6 +79,17 @@ export function validateKhbdPlan(plan: unknown, body: KhbdRequestLike) {
       issues.push({ code: "VAGUE_CONCLUSION", severity: "medium", message: `Hoạt động ${index + 1} chưa nêu rõ nội dung kiến thức cần chốt.` });
     }
   }
+  const knowledgeActivity = activities.find((activity) => String(activity.code || "").trim().toUpperCase() === "B");
+  const subActivities = Array.isArray(knowledgeActivity?.subActivities) ? knowledgeActivity.subActivities as Array<Record<string, unknown>> : [];
+  if (!subActivities.length) issues.push({ code: "KNOWLEDGE_NOT_SPLIT", severity: "high", message: "Phần B chưa được tách thành các hoạt động nhỏ theo đề mục SGK." });
+  subActivities.forEach((subActivity, index) => {
+    const required = ["objective", "content", "product", "assessment"].filter((field) => !String(subActivity[field] || "").trim());
+    if (required.length) issues.push({ code: "INCOMPLETE_KNOWLEDGE_SUBACTIVITY", severity: "high", message: `Hoạt động B.${index + 1} còn thiếu mục a, b, c hoặc Kiểm tra, đánh giá.` });
+    const product = String(subActivity.product || "").trim();
+    if (!product || genericProduct.test(product)) issues.push({ code: "GENERIC_SUBACTIVITY_PRODUCT", severity: "high", message: `Sản phẩm dự kiến của hoạt động B.${index + 1} chưa nêu kiến thức cụ thể từ SGK.` });
+    const procedure = Array.isArray(subActivity.procedure) ? subActivity.procedure as Array<Record<string, unknown>> : [];
+    if (procedure.length < 4) issues.push({ code: "INCOMPLETE_SUBACTIVITY_PROCEDURE", severity: "high", message: `Hoạt động B.${index + 1} chưa đủ 4 bước tổ chức thực hiện.` });
+  });
 
   const options = new Set(Array.isArray(body.options) ? body.options : []);
   const digital = textArray(data.digitalCompetencyIndicators);
