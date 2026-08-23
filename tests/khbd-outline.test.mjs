@@ -85,6 +85,63 @@ test("the new objective subheading continues the existing numbering", async () =
     "the last numbered subheading provides the formatting template");
 });
 
+const englishLessonSpec = [
+  "UNIT 1: FAMILY LIFE – Lesson 1: Getting started",
+  "I. OBJECTIVES",
+  "1. Knowledge:",
+  "Vocabulary about household chores.",
+  "2. Competences:",
+  "Group work and communication skills.",
+  "3. Qualities: Being responsible at home.",
+  "II. TEACHING AIDS",
+  "Textbook, projector, handouts.",
+  "III. PROCEDURE",
+  "ACTIVITY 1: WARM-UP (5 minutes)",
+  "- Aim: Get students interested in the topic.",
+  { rows: [[["Expected learning product"], ["Teacher and learner activities"]], [["Students' answers"], [
+    "* Step 1: Assign the task:",
+    "The teacher shows pictures and asks questions.",
+    "* Step 2: Perform the task:",
+    "Students discuss in pairs.",
+    "* Step 3: Report and discuss:",
+    "Students share their answers.",
+    "* Step 4: Conclude and provide feedback: The teacher gives comments.",
+  ]]] },
+  "2. PRESENTATION (10 minutes)",
+  "- Aim: Present the new vocabulary.",
+  "3. PRACTICE (15 minutes)",
+  "Students do exercises 1 and 2.",
+  "4. PRODUCTION (10 minutes)",
+  "Students talk about their own family.",
+  "Homework: Learn the new words by heart.",
+];
+
+test("an all-English lesson plan is parsed: activities, sections and objectives", async () => {
+  const { buildLessonOutline } = await loadOutline();
+  const paragraphs = makeDocument(englishLessonSpec);
+  const outline = buildLessonOutline(paragraphs);
+  assert.deepEqual(outline.activities.map((item) => item.title), [
+    "ACTIVITY 1: WARM-UP (5 minutes)",
+    "2. PRESENTATION (10 minutes)",
+    "3. PRACTICE (15 minutes)",
+    "4. PRODUCTION (10 minutes)",
+  ], "\"Homework:\" is a trailing section, not an activity");
+  assert.deepEqual(outline.activities.map((item) => item.section),
+    ["khoidong", "kienthuc", "luyentap", "vandung"]);
+  assert.equal(paragraphs[outline.objectiveInsertAfter].text, "3. Qualities: Being responsible at home.",
+    "the objectives section ends before II. TEACHING AIDS");
+  assert.equal(outline.objectiveNextNumber, 4, "the integration subheading continues English numbering");
+});
+
+test("an English table activity anchors on the last line of Step 2", async () => {
+  const { buildLessonOutline } = await loadOutline();
+  const paragraphs = makeDocument(englishLessonSpec);
+  const outline = buildLessonOutline(paragraphs);
+  const warmUp = outline.activities[0];
+  assert.equal(warmUp.placement, "sau-buoc-2");
+  assert.equal(paragraphs[warmUp.insertAfter].text, "Students discuss in pairs.");
+});
+
 test("unnumbered objective subheadings yield no forced number", async () => {
   const { buildLessonOutline } = await loadOutline();
   const outline = buildLessonOutline(makeDocument([

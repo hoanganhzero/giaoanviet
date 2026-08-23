@@ -274,6 +274,7 @@ function matchedSourceContext(material: SourceMaterial, title: string) {
 function promptForIntegrate(body: RequestBody) {
   const form = body.form || {};
   const outline = body.outline;
+  const englishOutput = isEnglishSubject(form.subject);
   const grade = gradeNumber(form.grade);
   const digitalCodes = digitalPromptCatalogForGrade(form.grade);
   const aiCodes = aiPromptCatalogForGrade(form.grade);
@@ -299,13 +300,14 @@ ${outlineForPrompt(outline || { objectiveInsertAfter: -1, objectiveNextNumber: 0
 
 Các hoạt động ĐƯỢC PHÉP nhận khối tích hợp: ${available.map((activity) => activity.id).join(", ") || "không có"}. Tuyệt đối không trả về anchorId nằm ngoài danh sách này.
 
-${ppctMatch.digital.length || ppctMatch.ai.length ? `MÃ TỪ PPCT GIÁO VIÊN CUNG CẤP (phải dùng đúng, không thay mã):
+${ppctMatch.digital.length || ppctMatch.ai.length ? `MÃ TỪ PPCT GIÁO VIÊN CUNG CẤP (phải dùng đúng, không thay mã${englishOutput ? "; dịch phần mô tả chỉ báo sang tiếng Anh khi đưa vào nội dung chèn" : ""}):
 - Mã NLS: ${ppctMatch.digital.map((item) => `${item.code}. ${item.indicator}`).join(" | ") || "Không có"}
 - Mã AI: ${ppctMatch.ai.map((item) => `${item.code}. ${item.indicator}`).join(" | ") || "Không có"}` : `Không có PPCT tích hợp: chỉ dùng mã có thật của lớp ${grade}.
 - Mã NLS hợp lệ: ${digitalCodes}
 - Mã AI hợp lệ theo Quyết định 2422: ${aiCodes}`}
 
 QUY TẮC:
+0. ${englishOutput ? "QUY TẮC NGÔN NGỮ TUYỆT ĐỐI: Môn học là Tiếng Anh nên giáo án gốc dạy bằng tiếng Anh. Mọi nội dung chèn thêm (objectiveLines, integrationPlan, blocks, selfCheck) phải viết hoàn toàn bằng tiếng Anh tự nhiên, chuẩn sư phạm; xưng \"The teacher\" và \"Students\". Dòng tiêu đề objectiveLines là \"Digital & AI competences:\". Giữ nguyên mã chỉ báo (NLS x.y, NLa/NLb/NLc/NLd...) nhưng dịch phần mô tả chỉ báo sang tiếng Anh. Không để sót câu hoặc nhãn tiếng Việt trong nội dung chèn." : "QUY TẮC NGÔN NGỮ: Toàn bộ nội dung chèn thêm viết bằng tiếng Việt chuẩn mực."}
 1. Chọn từ 2 đến ${Math.max(2, Math.min(4, available.length || 2))} hoạt động phù hợp nhất trong danh sách được phép. Ưu tiên hoạt động mà hành vi số hoặc hành vi AI phát sinh tự nhiên từ chính nhiệm vụ đã có.
 2. KHÔNG ép tích hợp. Hoạt động thuần thao tác tính toán hoặc ghi nhớ thì bỏ qua, hoặc chỉ gắn mã NLS và ghi rõ ở Phần 1: "(Không ép tích hợp AI vì …)".
 3. Mỗi khối bám ĐÚNG nhiệm vụ đã mô tả trong hoạt động gốc. Không bịa ra nhiệm vụ, ngữ liệu hay câu hỏi không có trong giáo án.
@@ -313,13 +315,13 @@ QUY TẮC:
 5. Mọi khối phải khả thi với điều kiện thiết bị đã khai báo. Nếu lớp thiếu thiết bị cho HS, nêu phương án giáo viên trình chiếu kết quả đã chuẩn bị trước.
 6. Mọi hoạt động dùng AI phải kèm yêu cầu HS kiểm chứng lại với SGK và cảnh báo không nhập thông tin cá nhân thật.
 7. Mỗi mã chỉ dùng ở một hoạt động. Một khối được mang đồng thời một mã NLS và một mã AI khi hoạt động thực sự có cả hai hành vi.
-8. objectiveLines là các dòng sẽ chèn vào cuối mục I. MỤC TIÊU của giáo án gốc: một dòng tiêu đề "Năng lực số & AI:" rồi mỗi mã một dòng, ghi mã kèm NGUYÊN VĂN nội dung chỉ báo. Không viết lại các mục tiêu đã có.
+8. objectiveLines là các dòng sẽ chèn vào cuối mục I. MỤC TIÊU (I. OBJECTIVES) của giáo án gốc: một dòng tiêu đề ${englishOutput ? '"Digital & AI competences:"' : '"Năng lực số & AI:"'} rồi mỗi mã một dòng, ghi mã kèm ${englishOutput ? "nội dung chỉ báo đã dịch chính xác sang tiếng Anh" : "NGUYÊN VĂN nội dung chỉ báo"}. Không viết lại các mục tiêu đã có.
 9. integrationPlan là Phần 1 – Bảng định hướng tích hợp, mỗi khối đúng một dòng, thống nhất tên hoạt động và mã với khối tương ứng.
-10. Văn phong hành chính – sư phạm, xưng "GV" và "HS".
+10. ${englishOutput ? 'Văn phong sư phạm tiếng Anh, xưng "The teacher" và "Students".' : 'Văn phong hành chính – sư phạm, xưng "GV" và "HS".'}
 
 JSON phải đúng cấu trúc:
 {
-  "objectiveLines": ["Năng lực số & AI:", "- (NLS 6.1 – Ứng dụng trí tuệ nhân tạo – Bậc 3): nguyên văn nội dung chỉ báo"],
+  "objectiveLines": [${englishOutput ? '"Digital & AI competences:", "- (NLS 6.1 – Applying artificial intelligence – Level 3): the indicator translated into English"' : '"Năng lực số & AI:", "- (NLS 6.1 – Ứng dụng trí tuệ nhân tạo – Bậc 3): nguyên văn nội dung chỉ báo"'}],
   "integrationPlan": [{
     "activity": "tên hoạt động đúng như trong giáo án gốc",
     "content": "nội dung tích hợp cụ thể",

@@ -66,10 +66,10 @@ export function plainText(value: string) {
 }
 
 const SECTION_PATTERNS: Array<[ActivitySection, RegExp]> = [
-  ["khoidong", /\b(khoi dong|mo dau|warm up)\b/],
-  ["kienthuc", /\b(hinh thanh kien thuc|kham pha|kien thuc moi)\b/],
-  ["luyentap", /\b(luyen tap|thuc hanh|cung co)\b/],
-  ["vandung", /\b(van dung|trai nghiem|mo rong)\b/],
+  ["khoidong", /\b(khoi dong|mo dau|warm up|lead in|getting started|opening)\b/],
+  ["kienthuc", /\b(hinh thanh kien thuc|kham pha|kien thuc moi|presentation|new lesson|knowledge formation|pre (reading|listening|writing|speaking)|while (reading|listening))\b/],
+  ["luyentap", /\b(luyen tap|thuc hanh|cung co|controlled practice|practice|consolidation)\b/],
+  ["vandung", /\b(van dung|trai nghiem|mo rong|production|application|post (reading|listening|writing|speaking)|wrap up)\b/],
 ];
 
 function sectionOf(text: string, fallback: ActivitySection): ActivitySection {
@@ -78,13 +78,17 @@ function sectionOf(text: string, fallback: ActivitySection): ActivitySection {
   return fallback;
 }
 
-/** Tiêu đề hoạt động: "Hoạt động 1: ...", "2. HÌNH THÀNH KIẾN THỨC MỚI", "3. HOẠT ĐỘNG LUYỆN TẬP". */
+/** Tiêu đề hoạt động: "Hoạt động 1: ...", "2. HÌNH THÀNH KIẾN THỨC MỚI", "ACTIVITY 1: WARM-UP", "1. WARM-UP (5')". */
 function isActivityTitle(text: string) {
   const plain = plainText(text);
   if (!plain || plain.length > 160) return false;
   if (/^hoat dong \d/.test(plain)) return true;
   if (/^\d+\s+hoat dong\b/.test(plain)) return true;
   if (/^\d+\s+(khoi dong|mo dau|hinh thanh kien thuc|luyen tap|van dung|kham pha|thuc hanh)/.test(plain)) return true;
+  // Giáo án Tiếng Anh viết thuần tiếng Anh: "ACTIVITY 1: ...", "1. WARM-UP", "2. PRESENTATION"...
+  if (/^activity \d/.test(plain)) return true;
+  if (/^\d+\s+activity\b/.test(plain)) return true;
+  if (/^\d+\s+(warm up|lead in|getting started|presentation|practice|production|application|consolidation|further practice|wrap up|pre (reading|listening|writing|speaking)|while (reading|listening)|post (reading|listening|writing|speaking))\b/.test(plain)) return true;
   return false;
 }
 
@@ -92,31 +96,31 @@ function isActivityTitle(text: string) {
 function isIntegrationMarker(text: string) {
   if (text.includes("🔴")) return true;
   const plain = plainText(text);
-  return /^\[?\s*(tich hop nls|tich hop nang luc so|giao vien huong dan|hoc sinh thuc hien|san pham so hoac san pham ai)/.test(plain);
+  return /^\[?\s*(tich hop nls|tich hop nang luc so|giao vien huong dan|hoc sinh thuc hien|san pham so hoac san pham ai|digital ai competence integration|teacher guidance|learner actions|digital or ai product)/.test(plain);
 }
 
 /** Mục đứng sau tiến trình dạy học: kết thúc hoạt động cuối, không phải hoạt động. */
 function isTrailingSection(text: string) {
   const plain = plainText(text);
   if (!plain || plain.length > 120) return false;
-  return /^\d*\s*(huong dan (hoc sinh )?tu hoc|huong dan ve nha|dieu chinh sau bai day|ho so day hoc|phu luc)/.test(plain)
+  return /^\d*\s*(huong dan (hoc sinh )?tu hoc|huong dan ve nha|dieu chinh sau bai day|ho so day hoc|phu luc|homework|home assignment|self study guidance)/.test(plain)
     || /^iv\s+(dieu chinh|ho so)/.test(plain);
 }
 
 function isObjectiveHeading(text: string) {
   const plain = plainText(text);
-  return /^(i\s+)?(muc tieu|yeu cau can dat)\b/.test(plain);
+  return /^(i\s+)?(muc tieu|yeu cau can dat|objectives?|aims)\b/.test(plain);
 }
 
 function isSectionHeadingAfterObjectives(text: string) {
   const plain = plainText(text);
-  return /^(ii\s+)?(thiet bi day hoc|do dung day hoc|chuan bi)\b/.test(plain) || /^iii\s/.test(plain);
+  return /^(ii\s+)?(thiet bi day hoc|do dung day hoc|chuan bi|teaching aids?|materials|equipment|preparation)\b/.test(plain) || /^iii\s/.test(plain);
 }
 
-/** Đề mục con trong I. MỤC TIÊU: "1. Kiến thức", "2. Về năng lực", "3. Phẩm chất"... Trả về số thứ tự, hoặc 0. */
+/** Đề mục con trong I. MỤC TIÊU: "1. Kiến thức", "2. Về năng lực", "3. Qualities"... Trả về số thứ tự, hoặc 0. */
 function objectiveSubheadingNumber(text: string) {
   const plain = plainText(text);
-  const match = plain.match(/^(\d+)\s+(ve\s+)?(kien thuc|nang luc|pham chat|ky nang|thai do|knowledge|competenc|qualit)/);
+  const match = plain.match(/^(\d+)\s+(ve\s+)?(kien thuc|nang luc|pham chat|ky nang|thai do|knowledge|competenc|qualit|language|skill|attitude)/);
   return match ? Number(match[1]) : 0;
 }
 
@@ -177,11 +181,11 @@ function findInsertPoint(paragraphs: OutlineParagraph[], table: OutlineTable | n
 
   const matchesStep = (paragraph: OutlineParagraph, number: number, label: RegExp) => {
     const plain = plainText(paragraph.text);
-    return new RegExp(`buoc ${number}\\b`).test(plain) || label.test(plain);
+    return new RegExp(`\\b(buoc|step) ${number}\\b`).test(plain) || label.test(plain);
   };
-  const step2 = candidates.find((paragraph) => matchesStep(paragraph, 2, /^thuc hien nhiem vu/));
+  const step2 = candidates.find((paragraph) => matchesStep(paragraph, 2, /^(thuc hien nhiem vu|perform the task|task performance)/));
   if (step2) {
-    const step3 = candidates.find((paragraph) => paragraph.index > step2.index && matchesStep(paragraph, 3, /^bao cao,? thao luan/));
+    const step3 = candidates.find((paragraph) => paragraph.index > step2.index && matchesStep(paragraph, 3, /^(bao cao,? thao luan|report and discuss)/));
     if (step3) {
       const previous = candidates.filter((paragraph) => paragraph.index < step3.index).at(-1);
       return { insertAfter: previous ? previous.index : step2.index, placement: "sau-buoc-2" as const };
