@@ -46,6 +46,10 @@ export type ActivityAnchor = {
 export type LessonOutline = {
   /** Đoạn cuối của mục I. MỤC TIÊU, nơi chèn dòng "Năng lực số & AI". -1 nếu không thấy. */
   objectiveInsertAfter: number;
+  /** Số thứ tự kế tiếp cho đề mục mới trong I. MỤC TIÊU (sau "3. Phẩm chất" là 4). 0 nếu các đề mục không đánh số. */
+  objectiveNextNumber: number;
+  /** Đoạn đề mục con cuối cùng của I. MỤC TIÊU ("3. Phẩm chất"...), dùng làm mẫu định dạng. -1 nếu không có. */
+  objectiveSubheadingStyleIndex: number;
   /** Đoạn đầu tài liệu, nơi chèn Phần 1 phía trước. */
   documentStart: number;
   activities: ActivityAnchor[];
@@ -107,6 +111,13 @@ function isObjectiveHeading(text: string) {
 function isSectionHeadingAfterObjectives(text: string) {
   const plain = plainText(text);
   return /^(ii\s+)?(thiet bi day hoc|do dung day hoc|chuan bi)\b/.test(plain) || /^iii\s/.test(plain);
+}
+
+/** Đề mục con trong I. MỤC TIÊU: "1. Kiến thức", "2. Về năng lực", "3. Phẩm chất"... Trả về số thứ tự, hoặc 0. */
+function objectiveSubheadingNumber(text: string) {
+  const plain = plainText(text);
+  const match = plain.match(/^(\d+)\s+(ve\s+)?(kien thuc|nang luc|pham chat|ky nang|thai do|knowledge|competenc|qualit)/);
+  return match ? Number(match[1]) : 0;
 }
 
 /** Dò các bảng 2 cột hoặc 3 cột theo nhãn ở hàng tiêu đề. */
@@ -192,11 +203,20 @@ export function buildLessonOutline(paragraphs: OutlineParagraph[]): LessonOutlin
     && paragraph.index > (titles.at(-1)?.index ?? -1))?.index ?? Number.MAX_SAFE_INTEGER;
 
   let objectiveInsertAfter = -1;
+  let objectiveNextNumber = 0;
+  let objectiveSubheadingStyleIndex = -1;
   const objectiveHeading = paragraphs.find((paragraph) => paragraph.table === undefined && isObjectiveHeading(paragraph.text));
   if (objectiveHeading) {
     const next = paragraphs.find((paragraph) => paragraph.index > objectiveHeading.index && paragraph.table === undefined && isSectionHeadingAfterObjectives(paragraph.text));
     const inside = paragraphs.filter((paragraph) => paragraph.index > objectiveHeading.index && (!next || paragraph.index < next.index));
     objectiveInsertAfter = inside.at(-1)?.index ?? objectiveHeading.index;
+    for (const paragraph of inside) {
+      const number = objectiveSubheadingNumber(paragraph.text);
+      if (number > 0 && number + 1 > objectiveNextNumber) {
+        objectiveNextNumber = number + 1;
+        objectiveSubheadingStyleIndex = paragraph.index;
+      }
+    }
   }
 
   let currentSection: ActivitySection = "khac";
@@ -234,6 +254,8 @@ export function buildLessonOutline(paragraphs: OutlineParagraph[]): LessonOutlin
 
   return {
     objectiveInsertAfter,
+    objectiveNextNumber,
+    objectiveSubheadingStyleIndex,
     documentStart: paragraphs[0]?.index ?? 0,
     activities,
   };

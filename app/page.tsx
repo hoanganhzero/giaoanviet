@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
-import { createParagraph, createTable, findBrokenOriginal, insertAfterParagraph, walkDocument } from "@/app/lib/khbd-docx-insert";
+import { createParagraph, createTable, findBrokenOriginal, insertAfterParagraph, insertObjectiveSection, walkDocument } from "@/app/lib/khbd-docx-insert";
 import type { ActivityAnchor } from "@/app/lib/khbd-docx-outline";
+import { buildStandardDocx } from "@/app/lib/khbd-docx-new";
 import AccountControls, { useAccountGate } from "@/app/components/AccountControls";
 import BrandLogo from "@/app/components/BrandLogo";
 
@@ -775,8 +776,12 @@ export default function Home() {
       }
 
       if (integration.objectiveLines.length && walk.outline.objectiveInsertAfter >= 0) {
-        const node = walk.nodes[walk.outline.objectiveInsertAfter];
-        if (node) insertAfterParagraph(wordXml, node, integration.objectiveLines);
+        // Đề mục riêng trong I. MỤC TIÊU, đánh số tiếp theo các đề mục sẵn có ("3. Phẩm chất" → "4. ...").
+        const headingBase = englishDocument ? "Digital and artificial intelligence (AI) competences" : "Năng lực số và năng lực trí tuệ nhân tạo (AI)";
+        const heading = walk.outline.objectiveNextNumber > 0 ? `${walk.outline.objectiveNextNumber}. ${headingBase}` : `* ${headingBase}`;
+        const isDuplicateTitle = (line: string) => /nang luc so|digital/.test(line.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[đĐ]/g, "d").toLowerCase()) && line.trim().endsWith(":") && line.length < 80;
+        const contentLines = integration.objectiveLines.filter((line, index) => !(index === 0 && isDuplicateTitle(line)));
+        insertObjectiveSection(wordXml, walk, heading, contentLines);
       }
 
       if (integration.integrationPlan.length) {
@@ -784,9 +789,9 @@ export default function Home() {
         const parent = first?.parentNode;
         if (parent) {
           const rows = [[...blockText.columns], ...integration.integrationPlan.map((row) => [row.activity, row.content, row.digitalCode, row.aiCode, row.product, row.ethicsNote])];
-          parent.insertBefore(createParagraph(wordXml, blockText.part1, first, true), first);
-          parent.insertBefore(createTable(wordXml, rows, first), first);
-          parent.insertBefore(createParagraph(wordXml, blockText.part2, first, true), first);
+          parent.insertBefore(createParagraph(wordXml, blockText.part1, undefined, true), first);
+          parent.insertBefore(createTable(wordXml, rows), first);
+          parent.insertBefore(createParagraph(wordXml, blockText.part2, undefined, true), first);
         }
       }
 
@@ -850,7 +855,7 @@ export default function Home() {
             anchor = allParagraphs.find((paragraph) => normalizeAnchorText(paragraphText(paragraph)).includes(keyword));
             if (anchor) break;
           }
-          const nodes = [createWordParagraph(title, anchor, true), ...cleanLines.map((line) => createWordParagraph(line, anchor))];
+          const nodes = [createWordParagraph(title, anchor, true), ...cleanLines.map((line) => createWordParagraph(line, anchor, line.startsWith("🔴")))];
           if (anchor?.parentNode) {
             let tail = anchorTails.get(anchor) || anchor;
             nodes.forEach((node) => {
@@ -901,7 +906,7 @@ export default function Home() {
               if (cellIndex < 0 || !cells[cellIndex]) return;
               const cell = cells[cellIndex];
               const anchor = (xmlElements(cell, "p") as Element[]).at(-1);
-              lines.map((line) => String(line || "").trim()).filter(Boolean).forEach((line, index) => cell.appendChild(createWordParagraph(line, anchor, index === 0)));
+              lines.map((line) => String(line || "").trim()).filter(Boolean).forEach((line, index) => cell.appendChild(createWordParagraph(line, anchor, index === 0 || line.startsWith("🔴"))));
             };
             if (productLines.length) appendLines(productIndex, [title, ...productLines]);
             if (combinedIndex >= 0) appendLines(combinedIndex, [title, ...teacherLines, ...studentLines]);
@@ -929,6 +934,19 @@ export default function Home() {
           const [title, ...rest] = lines;
           if (!insertIntoTemplateTable(title, rest, [], [], anchors)) insertSection(title, rest, anchors);
         };
+        // Đề mục "Năng lực số và Trí tuệ nhân tạo" trong I. MỤC TIÊU, đánh số nối tiếp đề mục sẵn có.
+        const objectiveCompetencyLines = [
+          ...(plan.digitalCompetencyIndicators || []).map((item) => `- (${item.code}): ${item.indicator}`),
+          ...(plan.aiCompetencyIndicators || []).map((item) => `- (${item.code}): ${item.indicator}`),
+        ];
+        if (objectiveCompetencyLines.length && (enabled.includes("digital") || enabled.includes("aiEducation"))) {
+          const walk = walkDocument(wordXml);
+          if (walk.outline.objectiveInsertAfter >= 0) {
+            const headingBase = englishDocument ? "Digital and artificial intelligence (AI) competences" : "Năng lực số và năng lực trí tuệ nhân tạo (AI)";
+            const heading = walk.outline.objectiveNextNumber > 0 ? `${walk.outline.objectiveNextNumber}. ${headingBase}` : `* ${headingBase}`;
+            if (insertObjectiveSection(wordXml, walk, heading, objectiveCompetencyLines) > 0) addedSectionCount += 1;
+          }
+        }
         const placedBlocks = allActivityParts.flatMap((part) => (part.procedure || [])
           .filter((step) => step.integration)
           .map((step) => ({ block: step.integration as IntegrationBlock, activityCodes: [part.code.charAt(0)] })));
@@ -945,6 +963,29 @@ export default function Home() {
         return;
       } catch {
         showNotice("Không thể sao chép định dạng KHBD cũ; hệ thống sẽ tạo một tệp Word mới theo nội dung đã soạn.");
+      }
+    }
+    if (!editingPlan) {
+      // Chưa chỉnh tay trong trình xem: dựng .docx thật theo chuẩn văn bản (A4, Times New Roman 13, lề chuẩn).
+      try {
+        const output = buildStandardDocx({
+          english: englishDocument,
+          plan,
+          form: { subject: form.subject, grade: form.grade, periods: form.periods, teacher: form.teacher, school: form.school, department: form.department },
+          labels: docText as unknown as Record<string, string>,
+          blockLabels: { part1: blockText.part1, part2: blockText.part2, columns: blockText.columns },
+          blockLines: (block) => integrationBlockLines(block as IntegrationBlock),
+        });
+        const url = URL.createObjectURL(new Blob([output.slice().buffer], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }));
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = `Ke-hoach-bai-day-${form.title.replace(/[^a-zA-Z0-9]+/g, "-") || "moi"}.docx`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+        showNotice("Đã tạo tệp Word (.docx) theo chuẩn văn bản: A4, Times New Roman 13, lề chuẩn, tiêu đề in đậm.");
+        return;
+      } catch {
+        showNotice("Không dựng được .docx chuẩn; hệ thống sẽ tạo bản Word dạng cũ.");
       }
     }
     const escape = (value: string) => value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[character] || character);
@@ -1084,7 +1125,7 @@ export default function Home() {
                   {integration.integrationPlan.map((row, index) => <tr key={`${index}-${row.activity}`}><td>{row.activity}</td><td>{row.content}</td><td>{row.digitalCode}</td><td>{row.aiCode}</td><td>{row.product}</td><td>{row.ethicsNote}</td></tr>)}
                 </tbody></table>
 
-                {integration.objectiveLines.length > 0 && <section><h3>Chèn vào I. MỤC TIÊU</h3><ul>{integration.objectiveLines.map((line, index) => <li key={`${index}-${line}`}>{line}</li>)}</ul></section>}
+                {integration.objectiveLines.length > 0 && <section><h3>Chèn vào I. MỤC TIÊU</h3><p><b>Đề mục mới: “Năng lực số và năng lực trí tuệ nhân tạo (AI)”</b> — số thứ tự tự nối tiếp các đề mục sẵn có (sau “3. Phẩm chất” sẽ là “4.”).</p><ul>{integration.objectiveLines.map((line, index) => <li key={`${index}-${line}`}>{line}</li>)}</ul></section>}
 
                 <section><h3>Các khối sẽ chèn vào giáo án gốc</h3>
                   {integration.blocks.map((entry) => <div className="integration-target" key={entry.anchorId}>

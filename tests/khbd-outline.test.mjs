@@ -76,6 +76,27 @@ test("the objective section ends before the equipment heading", async () => {
   assert.equal(paragraphs[outline.objectiveInsertAfter].text, "3. Phẩm chất: Nghiêm túc, tập trung.");
 });
 
+test("the new objective subheading continues the existing numbering", async () => {
+  const { buildLessonOutline } = await loadOutline();
+  const paragraphs = makeDocument(lessonSpec);
+  const outline = buildLessonOutline(paragraphs);
+  assert.equal(outline.objectiveNextNumber, 4, "after \"3. Phẩm chất\" the integration heading is number 4");
+  assert.equal(paragraphs[outline.objectiveSubheadingStyleIndex].text, "3. Phẩm chất: Nghiêm túc, tập trung.",
+    "the last numbered subheading provides the formatting template");
+});
+
+test("unnumbered objective subheadings yield no forced number", async () => {
+  const { buildLessonOutline } = await loadOutline();
+  const outline = buildLessonOutline(makeDocument([
+    "I. MỤC TIÊU",
+    "Về kiến thức: nắm được khái niệm.",
+    "Về phẩm chất: chăm chỉ.",
+    "II. THIẾT BỊ DẠY HỌC VÀ HỌC LIỆU",
+  ]));
+  assert.equal(outline.objectiveNextNumber, 0);
+  assert.equal(outline.objectiveSubheadingStyleIndex, -1);
+});
+
 test("group headings are dropped and every real activity is found", async () => {
   const { buildLessonOutline } = await loadOutline();
   const outline = buildLessonOutline(makeDocument(lessonSpec));

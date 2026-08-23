@@ -295,7 +295,7 @@ Thông tin bài dạy:
 - Tích hợp được yêu cầu: ${[digitalRequested ? "Năng lực số" : "", aiRequested ? "Năng lực AI" : ""].filter(Boolean).join(" và ") || "Không có"}
 
 DANH MỤC HOẠT ĐỘNG CÓ THẬT TRONG GIÁO ÁN GỐC (chỉ được bám vào các hoạt động này):
-${outlineForPrompt(outline || { objectiveInsertAfter: -1, documentStart: 0, activities: [] }) || "(không đọc được hoạt động nào)"}
+${outlineForPrompt(outline || { objectiveInsertAfter: -1, objectiveNextNumber: 0, objectiveSubheadingStyleIndex: -1, documentStart: 0, activities: [] }) || "(không đọc được hoạt động nào)"}
 
 Các hoạt động ĐƯỢC PHÉP nhận khối tích hợp: ${available.map((activity) => activity.id).join(", ") || "không có"}. Tuyệt đối không trả về anchorId nằm ngoài danh sách này.
 
