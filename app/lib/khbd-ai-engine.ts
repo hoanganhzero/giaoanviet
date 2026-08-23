@@ -1,5 +1,5 @@
 export type KhbdRequestLike = {
-  task?: "lesson" | "ppct";
+  task?: "lesson" | "ppct" | "integrate";
   form?: {
     level?: string;
     subject?: string;
@@ -258,4 +258,46 @@ export function validateKhbdPlan(plan: unknown, body: KhbdRequestLike) {
     needsReview: high > 0 || score < 90,
     issues,
   };
+}
+
+/** Quality gate của Chế độ B: chấm trên phần chèn thêm, không chấm giáo án gốc. */
+export function validateIntegrationResult(result: unknown) {
+  const issues: QualityIssue[] = [];
+  const data = result && typeof result === "object" ? result as Record<string, unknown> : {};
+  const blocks = Array.isArray(data.blocks) ? data.blocks as Array<Record<string, unknown>> : [];
+  const integrationPlan = Array.isArray(data.integrationPlan) ? data.integrationPlan as Array<Record<string, unknown>> : [];
+
+  if (!blocks.length) issues.push({ code: "INTEGRATION_BLOCK_MISSING", severity: "high", message: "Không tạo được khối tích hợp nào bám vào hoạt động của giáo án gốc." });
+  if (blocks.length && integrationPlan.length !== blocks.length) {
+    issues.push({ code: "INTEGRATION_PLAN_MISMATCH", severity: "high", message: `Phần 1 có ${integrationPlan.length} dòng nhưng có ${blocks.length} khối tích hợp; hai phần phải tương ứng một–một.` });
+  }
+  if (!textArray(data.objectiveLines).length) {
+    issues.push({ code: "OBJECTIVE_LINES_MISSING", severity: "high", message: "Chưa có dòng “Năng lực số & AI” để chèn vào mục I. MỤC TIÊU." });
+  }
+
+  blocks.forEach((entry) => {
+    const label = String(entry.activityTitle || entry.anchorId || "?").trim();
+    const block = entry.block && typeof entry.block === "object" ? entry.block as Record<string, unknown> : {};
+    const emptyText = ["manifestation", "criteria", "behaviour", "ethicsNote"].filter((field) => !String(block[field] || "").trim());
+    const emptyLists = ["teacherGuidance", "studentActions", "digitalProduct"].filter((field) => !textArray(block[field]).length);
+    if (emptyText.length || emptyLists.length) {
+      issues.push({ code: "INTEGRATION_BLOCK_INCOMPLETE", severity: "high", message: `Khối của “${label}” chưa đủ 5 phân khối; còn thiếu: ${[...emptyText, ...emptyLists].join(", ")}.` });
+    }
+    const guidance = textArray(block.teacherGuidance).join(" ");
+    if (guidance && !/["“”']/.test(guidance)) {
+      issues.push({ code: "INTEGRATION_BLOCK_NO_PROMPT", severity: "medium", message: `Khối của “${label}” chưa có câu lệnh mẫu đặt trong ngoặc kép.` });
+    }
+    if (!String(block.digitalCode || "").trim() && !String(block.aiCode || "").trim()) {
+      issues.push({ code: "INTEGRATION_PLAN_NO_CODE", severity: "high", message: `Khối của “${label}” không có mã NLS lẫn mã AI.` });
+    }
+  });
+
+  (Array.isArray(data.selfCheck) ? data.selfCheck as Array<Record<string, unknown>> : [])
+    .filter((item) => item.passed === false)
+    .forEach((item) => issues.push({ code: "SELF_CHECK_FAILED", severity: "medium", message: `Tự kiểm tra chưa đạt: ${String(item.label || "mục không tên").trim()}${item.note ? ` – ${String(item.note).trim()}` : ""}.` }));
+
+  const high = issues.filter((issue) => issue.severity === "high").length;
+  const medium = issues.filter((issue) => issue.severity === "medium").length;
+  const score = Math.max(0, 100 - high * 15 - medium * 7);
+  return { score, valid: high === 0 && score >= 90, needsReview: high > 0 || score < 90, issues };
 }

@@ -12,6 +12,7 @@ import {
   isOfficialAiCode,
   normalizeDigitalCode,
 } from "@/app/lib/competency-codes";
+import { outlineForPrompt, type LessonOutline } from "@/app/lib/khbd-docx-outline";
 import {
   completeIntegrationBlock,
   normalizeIntegrationBlock,
@@ -50,7 +51,8 @@ type PpctForm = {
 };
 
 type RequestBody = {
-  task?: "lesson" | "ppct";
+  task?: "lesson" | "ppct" | "integrate";
+  outline?: LessonOutline;
   provider?: Provider | "auto";
   model?: string;
   form?: {
@@ -265,8 +267,88 @@ function matchedSourceContext(material: SourceMaterial, title: string) {
   return { ...material, kind, matched, score: best.score, excerpt: chunks.slice(start, end).join("\n").slice(0, 32000) };
 }
 
+/**
+ * Chế độ B — chỉ chèn. Mô hình nhận danh mục hoạt động CÓ THẬT trong giáo án gốc và chỉ
+ * viết khối tích hợp bám vào đó; nó không soạn lại bất kỳ phần nào của giáo án.
+ */
+function promptForIntegrate(body: RequestBody) {
+  const form = body.form || {};
+  const outline = body.outline;
+  const grade = gradeNumber(form.grade);
+  const digitalCodes = digitalPromptCatalogForGrade(form.grade);
+  const aiCodes = aiPromptCatalogForGrade(form.grade);
+  const ppctMatch = matchIntegratedPpct(form.ppctIntegrationText || "", form.title || "", form.grade);
+  const options = body.options || [];
+  const digitalRequested = options.includes("digital");
+  const aiRequested = options.includes("aiEducation");
+  const available = (outline?.activities || []).filter((activity) => activity.resolved && !activity.alreadyIntegrated);
+  return `Bạn là chuyên gia tích hợp Năng lực số (NLS) và Trí tuệ nhân tạo (AI) vào Kế hoạch bài dạy theo Chương trình GDPT 2018, Thông tư 02/2025/TT-BGDĐT và Quyết định 2422/QĐ-BGDĐT.
+
+NHIỆM VỤ: Giáo viên đã có sẵn một giáo án hoàn chỉnh. Bạn TUYỆT ĐỐI KHÔNG soạn lại, không sửa, không rút gọn và không diễn đạt lại bất kỳ câu chữ nào của giáo án đó. Bạn chỉ viết phần CHÈN THÊM. Chỉ trả về JSON hợp lệ, không Markdown, không giải thích ngoài JSON.
+
+Thông tin bài dạy:
+- Cấp học: ${form.level || "Chưa xác định"} | Môn: ${form.subject || "Chưa xác định"} | Lớp: ${form.grade || "Chưa xác định"}
+- Tên bài: ${form.title || "Chưa xác định"}
+- Thời lượng: ${form.periods || "1"} tiết
+- Bộ sách: ${form.book || "Bộ sách hiện hành"}
+- Điều kiện thiết bị: ${form.device || "Chưa khai báo (giả định lớp chỉ có máy chiếu của giáo viên)"}
+- Tích hợp được yêu cầu: ${[digitalRequested ? "Năng lực số" : "", aiRequested ? "Năng lực AI" : ""].filter(Boolean).join(" và ") || "Không có"}
+
+DANH MỤC HOẠT ĐỘNG CÓ THẬT TRONG GIÁO ÁN GỐC (chỉ được bám vào các hoạt động này):
+${outlineForPrompt(outline || { objectiveInsertAfter: -1, documentStart: 0, activities: [] }) || "(không đọc được hoạt động nào)"}
+
+Các hoạt động ĐƯỢC PHÉP nhận khối tích hợp: ${available.map((activity) => activity.id).join(", ") || "không có"}. Tuyệt đối không trả về anchorId nằm ngoài danh sách này.
+
+${ppctMatch.digital.length || ppctMatch.ai.length ? `MÃ TỪ PPCT GIÁO VIÊN CUNG CẤP (phải dùng đúng, không thay mã):
+- Mã NLS: ${ppctMatch.digital.map((item) => `${item.code}. ${item.indicator}`).join(" | ") || "Không có"}
+- Mã AI: ${ppctMatch.ai.map((item) => `${item.code}. ${item.indicator}`).join(" | ") || "Không có"}` : `Không có PPCT tích hợp: chỉ dùng mã có thật của lớp ${grade}.
+- Mã NLS hợp lệ: ${digitalCodes}
+- Mã AI hợp lệ theo Quyết định 2422: ${aiCodes}`}
+
+QUY TẮC:
+1. Chọn từ 2 đến ${Math.max(2, Math.min(4, available.length || 2))} hoạt động phù hợp nhất trong danh sách được phép. Ưu tiên hoạt động mà hành vi số hoặc hành vi AI phát sinh tự nhiên từ chính nhiệm vụ đã có.
+2. KHÔNG ép tích hợp. Hoạt động thuần thao tác tính toán hoặc ghi nhớ thì bỏ qua, hoặc chỉ gắn mã NLS và ghi rõ ở Phần 1: "(Không ép tích hợp AI vì …)".
+3. Mỗi khối bám ĐÚNG nhiệm vụ đã mô tả trong hoạt động gốc. Không bịa ra nhiệm vụ, ngữ liệu hay câu hỏi không có trong giáo án.
+4. Mức độ thao tác AI của học sinh phải đúng theo lớp ${grade || "đã khai báo"}: lớp 1–2 giáo viên thao tác còn HS quan sát và trả lời miệng; lớp 3–5 HS làm theo nhóm với câu lệnh mẫu cho sẵn; lớp 6–7 HS dùng câu lệnh mẫu và chỉnh nhẹ; lớp 8–9 HS tự viết câu lệnh và so sánh hai kết quả AI; lớp 10–12 HS tự thiết kế câu lệnh và phản biện kết quả.
+5. Mọi khối phải khả thi với điều kiện thiết bị đã khai báo. Nếu lớp thiếu thiết bị cho HS, nêu phương án giáo viên trình chiếu kết quả đã chuẩn bị trước.
+6. Mọi hoạt động dùng AI phải kèm yêu cầu HS kiểm chứng lại với SGK và cảnh báo không nhập thông tin cá nhân thật.
+7. Mỗi mã chỉ dùng ở một hoạt động. Một khối được mang đồng thời một mã NLS và một mã AI khi hoạt động thực sự có cả hai hành vi.
+8. objectiveLines là các dòng sẽ chèn vào cuối mục I. MỤC TIÊU của giáo án gốc: một dòng tiêu đề "Năng lực số & AI:" rồi mỗi mã một dòng, ghi mã kèm NGUYÊN VĂN nội dung chỉ báo. Không viết lại các mục tiêu đã có.
+9. integrationPlan là Phần 1 – Bảng định hướng tích hợp, mỗi khối đúng một dòng, thống nhất tên hoạt động và mã với khối tương ứng.
+10. Văn phong hành chính – sư phạm, xưng "GV" và "HS".
+
+JSON phải đúng cấu trúc:
+{
+  "objectiveLines": ["Năng lực số & AI:", "- (NLS 6.1 – Ứng dụng trí tuệ nhân tạo – Bậc 3): nguyên văn nội dung chỉ báo"],
+  "integrationPlan": [{
+    "activity": "tên hoạt động đúng như trong giáo án gốc",
+    "content": "nội dung tích hợp cụ thể",
+    "digitalCode": "(NLS 6.1 – Ứng dụng trí tuệ nhân tạo – Bậc 3)",
+    "aiCode": "(NLc – Các kĩ thuật và ứng dụng AI: Tương tác với AI tạo sinh); để trống hoặc nêu lí do nếu hoạt động không có hành vi AI",
+    "product": "sản phẩm dự kiến kiểm tra được",
+    "ethicsNote": "một nguyên tắc đạo đức cụ thể, không viết chung chung"
+  }],
+  "blocks": [{
+    "anchorId": "hd-3",
+    "digitalCode": "(NLS 6.1 – Ứng dụng trí tuệ nhân tạo – Bậc 3)",
+    "aiCode": "(NLc – Các kĩ thuật và ứng dụng AI: Tương tác với AI tạo sinh)",
+    "manifestation": "HS làm gì trong chính hoạt động này để thể hiện năng lực đó",
+    "teacherGuidance": ["Giáo viên giao nhiệm vụ: \"câu lệnh mẫu nguyên văn đặt trong ngoặc kép\"", "Giáo viên nhắc nhở an toàn hoặc đạo đức số", "Giáo viên tổ chức kiểm chứng và nhận xét"],
+    "studentActions": ["3-4 hành vi số cụ thể của HS"],
+    "digitalProduct": ["sản phẩm HS nộp được"],
+    "criteria": "tiêu chí đánh giá",
+    "digitalAchieved": "mức đạt về năng lực số",
+    "aiAchieved": "mức đạt về năng lực AI; để trống nếu không tích hợp AI",
+    "behaviour": "hành vi quan sát được, phân biệt HS hiểu bài với HS chép nguyên văn kết quả AI",
+    "ethicsNote": "lưu ý đạo đức số hoặc đạo đức AI"
+  }],
+  "selfCheck": [{"label": "tên mục tự kiểm tra", "passed": true, "note": "lí do nếu chưa đạt"}]
+}`;
+}
+
 function promptFor(body: RequestBody) {
   if (body.task === "ppct") return promptForPpct(body);
+  if (body.task === "integrate") return promptForIntegrate(body);
   const form = body.form || {};
   const englishOutput = isEnglishSubject(form.subject);
   const selected = (body.options || []).map((id) => optionNames[id]).filter(Boolean);
@@ -1417,6 +1499,59 @@ function normalizePpct(value: unknown, body: RequestBody) {
   };
 }
 
+/**
+ * Chế độ B: chỉ giữ những khối trỏ đúng vào một hoạt động có thật, chèn được và chưa
+ * có sẵn khối tích hợp. Mọi khối thiếu phân khối đều được bù cho đủ khuôn mẫu.
+ */
+function normalizeIntegration(value: unknown, body: RequestBody) {
+  const source = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  const englishOutput = isEnglishSubject(body.form?.subject);
+  const activities = body.outline?.activities || [];
+  const usable = new Map(activities.filter((activity) => activity.resolved && !activity.alreadyIntegrated).map((activity) => [activity.id, activity]));
+  const seen = new Set<string>();
+
+  const blocks = (Array.isArray(source.blocks) ? source.blocks : []).flatMap((itemValue) => {
+    const item = itemValue && typeof itemValue === "object" ? itemValue as Record<string, unknown> : {};
+    const anchorId = String(item.anchorId || "").trim();
+    const activity = usable.get(anchorId);
+    if (!activity || seen.has(anchorId)) return [];
+    seen.add(anchorId);
+    const block = completeIntegrationBlock(normalizeIntegrationBlock(item) || {}, {
+      english: englishOutput,
+      activityTitle: activity.title,
+    });
+    return [{ anchorId, activityTitle: activity.title, insertAfter: activity.insertAfter, block }];
+  });
+
+  const planRows = Array.isArray(source.integrationPlan) ? source.integrationPlan as Array<Record<string, unknown>> : [];
+  const integrationPlan = blocks.map((entry, index) => {
+    const row = planRows[index] && typeof planRows[index] === "object" ? planRows[index] : {};
+    return {
+      activity: String(row.activity || "").trim() || entry.activityTitle,
+      content: String(row.content || "").trim() || entry.block.manifestation,
+      digitalCode: String(row.digitalCode || "").trim() || entry.block.digitalCode,
+      aiCode: String(row.aiCode || "").trim() || entry.block.aiCode,
+      product: String(row.product || "").trim() || entry.block.digitalProduct.join(" "),
+      ethicsNote: String(row.ethicsNote || "").trim() || entry.block.ethicsNote,
+    } satisfies IntegrationPlanRow;
+  });
+
+  return {
+    objectiveLines: strings(source.objectiveLines),
+    integrationPlan,
+    blocks,
+    skipped: activities.filter((activity) => !activity.resolved || activity.alreadyIntegrated).map((activity) => ({
+      id: activity.id,
+      title: activity.title,
+      reason: activity.alreadyIntegrated ? "da-co-khoi" : "khong-do-duoc-vi-tri",
+    })),
+    selfCheck: (Array.isArray(source.selfCheck) ? source.selfCheck : []).map((itemValue) => {
+      const item = itemValue && typeof itemValue === "object" ? itemValue as Record<string, unknown> : {};
+      return { label: String(item.label || "").trim(), passed: item.passed !== false, note: String(item.note || "").trim() };
+    }).filter((item) => item.label),
+  };
+}
+
 async function runProvider(provider: Provider, model: string, prompt: string, body: RequestBody, clientKeys: string[] = []) {
   const keys = getKeys(provider, clientKeys);
   const images = sourceImages(body);
@@ -1441,7 +1576,10 @@ async function runProvider(provider: Provider, model: string, prompt: string, bo
               : await callKira(keys[index], activeModel, prompt, images);
         if (!text) throw new Error("AI không trả về nội dung.");
         const parsed = normalizeScientificTree(JSON.parse(stripJsonFence(text)));
-        return { plan: body.task === "ppct" ? normalizePpct(parsed, body) : normalizePlan(parsed, body), keySlot: index + 1, model: activeModel };
+        const plan = body.task === "ppct" ? normalizePpct(parsed, body)
+          : body.task === "integrate" ? normalizeIntegration(parsed, body)
+          : normalizePlan(parsed, body);
+        return { plan, keySlot: index + 1, model: activeModel };
       } catch (error) {
         lastError = error;
         if (shouldTryNextModel(error) && modelIndex < models.length - 1) break;
@@ -1462,6 +1600,14 @@ export async function POST(request: NextRequest) {
       if (!body.ppct?.subject?.trim() || !body.ppct?.grade?.trim()) return NextResponse.json({ error: "Vui lòng chọn môn học và lớp." }, { status: 400 });
       if (!body.ppct?.sourceText?.trim()) return NextResponse.json({ error: "Vui lòng tải PPCT nguồn hoặc nhập nội dung PPCT." }, { status: 400 });
       if (!body.ppct?.textbookSourceText?.trim()) return NextResponse.json({ error: "Vui lòng tải SGK để đối chiếu yêu cầu cần đạt của từng bài." }, { status: 400 });
+    } else if (body.task === "integrate") {
+      if (!body.outline?.activities?.length) return NextResponse.json({ error: "Không đọc được hoạt động nào trong giáo án gốc. Vui lòng kiểm tra lại tệp KHBD đã tải lên." }, { status: 400 });
+      if (!body.outline.activities.some((activity) => activity.resolved && !activity.alreadyIntegrated)) {
+        return NextResponse.json({ error: "Giáo án gốc không còn hoạt động nào có thể chèn tích hợp: các hoạt động hoặc đã có khối tích hợp, hoặc không dò được vị trí Bước 2." }, { status: 400 });
+      }
+      if (!(body.options || []).some((option) => option === "digital" || option === "aiEducation")) {
+        return NextResponse.json({ error: "Vui lòng chọn Năng lực số hoặc Năng lực AI để chèn tích hợp." }, { status: 400 });
+      }
     } else if (!body.form?.title?.trim()) return NextResponse.json({ error: "Vui lòng nhập tên bài dạy." }, { status: 400 });
     const requested = body.provider || "auto";
     const providers: Provider[] = requested === "auto"

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { POST as generateLegacy } from "@/app/api/ai/generate/route";
-import { buildKhbdMegaInstruction, validateKhbdPlan, type KhbdRequestLike } from "@/app/lib/khbd-ai-engine";
+import { buildKhbdMegaInstruction, validateIntegrationResult, validateKhbdPlan, type KhbdRequestLike } from "@/app/lib/khbd-ai-engine";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -19,7 +19,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Yêu cầu không hợp lệ." }, { status: 400 });
   }
 
-  if (body.task !== "ppct") {
+  // Chế độ B đã có bộ chỉ dẫn riêng trong prompt; chỉ chế độ A cần chỉ dẫn soạn mới.
+  if (body.task !== "ppct" && body.task !== "integrate") {
     body = {
       ...body,
       form: {
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const payload = await response.json() as Record<string, unknown>;
-    const quality = validateKhbdPlan(payload.plan, body);
+    const quality = body.task === "integrate" ? validateIntegrationResult(payload.plan) : validateKhbdPlan(payload.plan, body);
     return NextResponse.json({ ...payload, quality });
   } catch {
     return NextResponse.json({ error: "Không thể kiểm định chất lượng KHBD sau khi tạo." }, { status: 502 });

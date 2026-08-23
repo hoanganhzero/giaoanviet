@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
+import { createParagraph, createTable, findBrokenOriginal, insertAfterParagraph, walkDocument } from "@/app/lib/khbd-docx-insert";
+import type { ActivityAnchor } from "@/app/lib/khbd-docx-outline";
 import AccountControls, { useAccountGate } from "@/app/components/AccountControls";
 import BrandLogo from "@/app/components/BrandLogo";
 
@@ -92,6 +94,14 @@ type IntegrationPlanRow = {
   aiCode: string;
   product: string;
   ethicsNote: string;
+};
+
+type IntegrationResult = {
+  objectiveLines: string[];
+  integrationPlan: IntegrationPlanRow[];
+  blocks: Array<{ anchorId: string; activityTitle: string; insertAfter: number; block: IntegrationBlock }>;
+  skipped: Array<{ id: string; title: string; reason: "da-co-khoi" | "khong-do-duoc-vi-tri" }>;
+  selfCheck: Array<{ label: string; passed: boolean; note: string }>;
 };
 
 type LessonProcedureStep = {
@@ -231,6 +241,9 @@ export default function Home() {
   const [contentTab, setContentTab] = useState<"text" | "file">("text");
   const [sourceFiles, setSourceFiles] = useState<SourceFile[]>([]);
   const [khbdTemplateFile, setKhbdTemplateFile] = useState<File | null>(null);
+  const [planMode, setPlanMode] = useState<"new" | "insert">("new");
+  const [integration, setIntegration] = useState<IntegrationResult | null>(null);
+  const [outlinePreview, setOutlinePreview] = useState<ActivityAnchor[]>([]);
   const [ppctIntegrationFile, setPpctIntegrationFile] = useState<PpctIntegrationFile | null>(null);
   const [readingPpct, setReadingPpct] = useState(false);
   const [generationStep, setGenerationStep] = useState(0);
@@ -598,7 +611,7 @@ export default function Home() {
   const removeSourceFile = (name: string) => {
     const next = sourceFiles.filter((file) => file.name !== name);
     setSourceFiles(next);
-    if (khbdTemplateFile?.name === name) setKhbdTemplateFile(null);
+    if (khbdTemplateFile?.name === name) { setKhbdTemplateFile(null); setPlanMode("new"); setIntegration(null); setOutlinePreview([]); }
     updateForm("attachment", next.map((file) => file.name).join(", "));
   };
 
@@ -606,8 +619,9 @@ export default function Home() {
     const source = sourceFiles.find((file) => file.name === name && /\.docx$/i.test(file.name));
     if (!source?.rawFile) return showNotice("Không tìm thấy tệp DOCX gốc để tạo KHBD mới.");
     setKhbdTemplateFile(source.rawFile);
+    setPlanMode("insert");
     setSourceFiles((current) => current.map((file) => file.name === name ? { ...file, kind: "khbd" } : file));
-    showNotice("Đã chọn KHBD cũ. Hệ thống sẽ sao chép toàn bộ tài liệu để tạo KHBD mới và chèn mã năng lực vào hoạt động phù hợp.");
+    showNotice("Đã chuyển sang chế độ Chèn tích hợp: giữ nguyên từng chữ của giáo án gốc, chỉ chèn thêm khối tích hợp.");
   };
 
   const updateManualKey = (providerId: keyof ManualKeys, slot: number, value: string) => {
@@ -636,6 +650,38 @@ export default function Home() {
       window.setTimeout(() => setGenerationStep(4), 5200),
     ];
     try {
+      if (planMode === "insert") {
+        if (!khbdTemplateFile) throw new Error("Chưa chọn tệp KHBD gốc để chèn tích hợp.");
+        const archive = unzipSync(new Uint8Array(await khbdTemplateFile.arrayBuffer()));
+        const documentXml = archive["word/document.xml"];
+        if (!documentXml) throw new Error("Tệp KHBD gốc không có nội dung Word hợp lệ.");
+        const wordXml = new DOMParser().parseFromString(strFromU8(documentXml), "application/xml");
+        if (wordXml.getElementsByTagName("parsererror").length) throw new Error("Không đọc được cấu trúc Word của KHBD gốc.");
+        const walk = walkDocument(wordXml);
+        setOutlinePreview(walk.outline.activities);
+        const insertResponse = await fetch("/api/ai/generate-v2", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            task: "integrate",
+            provider,
+            form: { ...form, ppctIntegrationFileName: ppctIntegrationFile?.name || "", ppctIntegrationText: ppctIntegrationFile?.text || "" },
+            outline: walk.outline,
+            options: enabled,
+            clientKeys: manualKeys,
+          }),
+        });
+        const insertData = await insertResponse.json();
+        if (!insertResponse.ok) throw new Error(insertData.error || "Không thể tạo nội dung tích hợp.");
+        setIntegration(insertData.plan as IntegrationResult);
+        setPlan(null);
+        setGenerationMeta({ provider: insertData.provider, model: insertData.model, keySlot: insertData.keySlot });
+        setGenerated(true);
+        setGenerationStep(5);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+
       const response = await fetch("/api/ai/generate-v2", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -707,6 +753,58 @@ export default function Home() {
     ].join("\n");
     await navigator.clipboard.writeText(text);
     showNotice("Đã sao chép kế hoạch bài dạy.");
+  };
+
+  /** Chế độ B: chèn Phần 1, dòng mục tiêu và các khối 🔴 vào đúng chỗ trong giáo án gốc. */
+  const downloadIntegratedPlan = async () => {
+    if (!integration || !khbdTemplateFile) return;
+    try {
+      const archive = unzipSync(new Uint8Array(await khbdTemplateFile.arrayBuffer()));
+      const wordXml = new DOMParser().parseFromString(strFromU8(archive["word/document.xml"]), "application/xml");
+      if (wordXml.getElementsByTagName("parsererror").length) throw new Error("Không đọc được cấu trúc Word của KHBD gốc.");
+      const walk = walkDocument(wordXml);
+
+      // Chèn từ cuối tài liệu ngược lên để các chỉ số neo phía trước không bị xê dịch.
+      const ordered = [...integration.blocks].sort((left, right) => right.insertAfter - left.insertAfter);
+      let insertedBlocks = 0;
+      for (const entry of ordered) {
+        const node = walk.nodes[entry.insertAfter];
+        if (!node) continue;
+        insertAfterParagraph(wordXml, node, integrationBlockLines(entry.block), false);
+        insertedBlocks += 1;
+      }
+
+      if (integration.objectiveLines.length && walk.outline.objectiveInsertAfter >= 0) {
+        const node = walk.nodes[walk.outline.objectiveInsertAfter];
+        if (node) insertAfterParagraph(wordXml, node, integration.objectiveLines);
+      }
+
+      if (integration.integrationPlan.length) {
+        const first = walk.nodes[0];
+        const parent = first?.parentNode;
+        if (parent) {
+          const rows = [[...blockText.columns], ...integration.integrationPlan.map((row) => [row.activity, row.content, row.digitalCode, row.aiCode, row.product, row.ethicsNote])];
+          parent.insertBefore(createParagraph(wordXml, blockText.part1, first, true), first);
+          parent.insertBefore(createTable(wordXml, rows, first), first);
+          parent.insertBefore(createParagraph(wordXml, blockText.part2, first, true), first);
+        }
+      }
+
+      const broken = findBrokenOriginal(walk.originalText, walkDocument(wordXml).originalText);
+      if (broken !== null) throw new Error(`Việc chèn đã làm thay đổi bản gốc ở đoạn: “${broken.slice(0, 60)}”. Đã hủy để không tạo ra tệp sai.`);
+
+      archive["word/document.xml"] = strToU8(new XMLSerializer().serializeToString(wordXml));
+      const output = zipSync(archive, { level: 6 });
+      const url = URL.createObjectURL(new Blob([output.slice().buffer], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `KHBD-TICH-HOP-${(form.title || khbdTemplateFile.name.replace(/\.docx$/i, "")).replace(/[^a-zA-Z0-9]+/g, "-")}.docx`;
+      link.click();
+      URL.revokeObjectURL(url);
+      showNotice(`Đã chèn ${insertedBlocks} khối tích hợp và giữ nguyên từng chữ của giáo án gốc.`);
+    } catch (error) {
+      showNotice(error instanceof Error ? error.message : "Không thể chèn tích hợp vào giáo án gốc.");
+    }
   };
 
   const downloadPlan = async () => {
@@ -924,6 +1022,17 @@ export default function Home() {
             <p className="curriculum-note">▣ Đang áp dụng: <b>{form.subject === "Tiếng Anh" ? "Global Success" : "Kết nối tri thức với cuộc sống"}</b> theo Chương trình giáo dục phổ thông 2018.</p>
 
             <div className="studio-fields">
+              <div className="studio-label full plan-mode-picker"><span className="plan-mode-title">Chế độ soạn</span>
+                <div className="plan-mode-options">
+                  <button type="button" className={planMode === "new" ? "is-active" : ""} onClick={() => { setPlanMode("new"); setIntegration(null); }}>
+                    <b>A. Soạn mới từ đầu</b><small>AI dựng trọn kế hoạch bài dạy theo cấu trúc của cấp học.</small>
+                  </button>
+                  <button type="button" className={planMode === "insert" ? "is-active" : ""} onClick={() => setPlanMode("insert")}>
+                    <b>B. Chèn tích hợp vào giáo án gốc</b><small>Giữ nguyên từng chữ của KHBD cũ, chỉ chèn thêm khối tích hợp NLS &amp; AI.</small>
+                  </button>
+                </div>
+                {planMode === "insert" && !khbdTemplateFile && <small className="field-help plan-mode-warning">Cần tải lên KHBD cũ dạng .docx rồi bấm “Dùng làm giáo án gốc” ở danh sách tệp bên dưới.</small>}
+              </div>
               <label className="studio-label">Số cột KHBD<select value={form.columns} onChange={(e) => updateForm("columns", e.target.value)}><option>1 cột (mặc định)</option><option>2 cột</option><option>3 cột</option></select><small className="field-help">1 cột: trình bày tuần tự; 2–3 cột: đối chiếu hoạt động và sản phẩm.</small></label>
               <label className="studio-label">Điều kiện thiết bị<select value={form.device} onChange={(e) => updateForm("device", e.target.value)}><option>Phòng máy</option><option>Máy chiếu của giáo viên</option><option>Điện thoại của học sinh</option><option>Không có thiết bị</option></select><small className="field-help">Quyết định mức thao tác số của học sinh; thiếu thiết bị thì khối tích hợp tự chuyển sang phương án giáo viên trình chiếu.</small></label>
               <label className="studio-label">Mẫu KHBD<select value={form.template} onChange={(e) => updateForm("template", e.target.value)}><option>Tự động theo cấp học</option><option>Công văn 2345</option><option>Công văn 5512</option><option>Mẫu rút gọn</option></select><small className="field-help">Nên chọn “Tự động theo cấp học” để dùng đúng mẫu.</small></label>
@@ -937,10 +1046,10 @@ export default function Home() {
                 <label className="upload-zone"><input type="file" multiple accept=".txt,.md,.csv,.json,.html,.pdf,.docx,.pptx,.png,.jpg,.jpeg,.webp" onChange={(e) => handleAttachments(e.target.files)} /><span>⇧</span><b>Chọn PPCT, SGK, KHBD cũ hoặc học liệu</b><small>Tối đa 5 tệp, mỗi tệp 100 MB. Hệ thống tự phân loại và dò đúng tên bài trước khi đưa nội dung vào KHBD.</small></label>
                 {sourceFiles.length > 0 && <div className="source-file-list">{sourceFiles.map((file) => <div key={file.name}>
                   <span>{file.kind === "ppct" ? "P" : file.kind === "sgk" ? "S" : file.kind === "khbd" ? "K" : "▤"}</span>
-                  <p><b>{file.name}</b><small><em className={`source-kind ${file.kind}`}>{file.kind === "ppct" ? "PPCT" : file.kind === "sgk" ? "SGK" : file.kind === "khbd" ? "KHBD cũ → KHBD mới" : "Học liệu"}</em> • {(file.size / 1024 / 1024).toFixed(2)} MB • {file.status}{file.characters ? ` • ${file.characters.toLocaleString("vi-VN")} ký tự` : ""}</small>{/\.docx$/i.test(file.name) && file.kind !== "khbd" && <button type="button" className="template-source-button" onClick={() => useAsKhbdTemplate(file.name)}>Dùng KHBD cũ để tạo bản mới</button>}</p>
+                  <p><b>{file.name}</b><small><em className={`source-kind ${file.kind}`}>{file.kind === "ppct" ? "PPCT" : file.kind === "sgk" ? "SGK" : file.kind === "khbd" ? "KHBD cũ → KHBD mới" : "Học liệu"}</em> • {(file.size / 1024 / 1024).toFixed(2)} MB • {file.status}{file.characters ? ` • ${file.characters.toLocaleString("vi-VN")} ký tự` : ""}</small>{/\.docx$/i.test(file.name) && file.kind !== "khbd" && <button type="button" className="template-source-button" onClick={() => useAsKhbdTemplate(file.name)}>Dùng làm giáo án gốc (chỉ chèn tích hợp)</button>}</p>
                   <button type="button" aria-label={`Xóa ${file.name}`} onClick={() => removeSourceFile(file.name)}>×</button>
                 </div>)}</div>}
-                {khbdTemplateFile && <p className="template-preserve-note">✓ Đang dùng <b>{khbdTemplateFile.name}</b> làm mẫu Word gốc. Khi tải xuống, hệ thống giữ nguyên bố cục, bảng, hình ảnh, đầu trang và chân trang; từng mục đã chọn được chèn vào khu vực phù hợp trong mẫu.</p>}
+                {khbdTemplateFile && <p className="template-preserve-note">✓ Giáo án gốc: <b>{khbdTemplateFile.name}</b>. Hệ thống không sửa, không rút gọn và không diễn đạt lại bất kỳ câu chữ nào; chỉ chèn thêm Phần 1, dòng “Năng lực số &amp; AI” ở mục I. MỤC TIÊU và các khối 🔴 ngay sau Bước 2 của hoạt động phù hợp. Trước khi cho tải, hệ thống đối chiếu lại toàn văn bản gốc.</p>}
               </>}
               <p>✎ Nhập trực tiếp hoặc đính kèm học liệu; nội dung càng cụ thể thì bài soạn càng sát thực tế.</p>
             </div>
@@ -966,10 +1075,34 @@ export default function Home() {
           </form>
 
           <section className="studio-result">
-            <div className="studio-result-head"><div><span>▤</span><h2>Kết quả soạn thảo</h2></div>{plan && <div>{!khbdTemplateFile && <button onClick={() => setEditingPlan((current) => !current)}>{editingPlan ? "✓ Hoàn tất" : "✎ Chỉnh sửa"}</button>}<button onClick={copyPlan}>▣ Sao chép</button>{!khbdTemplateFile && <button onClick={printPlan}>▤ In</button>}<button className="download-button" onClick={downloadPlan}>↓ {khbdTemplateFile ? "Tải KHBD mới" : "Tải Word"}</button></div>}</div>
+            <div className="studio-result-head"><div><span>▤</span><h2>Kết quả soạn thảo</h2></div>{integration && <div><button className="download-button" onClick={downloadIntegratedPlan}>↓ Tải giáo án đã chèn tích hợp</button></div>}{plan && <div>{!khbdTemplateFile && <button onClick={() => setEditingPlan((current) => !current)}>{editingPlan ? "✓ Hoàn tất" : "✎ Chỉnh sửa"}</button>}<button onClick={copyPlan}>▣ Sao chép</button>{!khbdTemplateFile && <button onClick={printPlan}>▤ In</button>}<button className="download-button" onClick={downloadPlan}>↓ {khbdTemplateFile ? "Tải KHBD mới" : "Tải Word"}</button></div>}</div>
             {!plan ? generating ? <div className="studio-empty studio-composing"><span>✦</span><b>Đang soạn thảo chi tiết</b><p>AI đang phân tích học liệu, thiết kế hoạt động và kiểm tra cấu trúc KHBD.</p><div><i /> Mục tiêu đo lường được <i /> Tổ chức 4 bước <i /> Đánh giá theo sản phẩm</div></div> : <div className="studio-empty"><span>▤</span><b>Chưa có dữ liệu</b><p>Vui lòng điền thông tin bên trái và nhấn<br />“Bắt đầu tạo bài dạy”.</p><div><i /> Mục tiêu & năng lực <i /> 4 hoạt động <i /> Đánh giá & học liệu</div></div> : <div className="studio-document-wrap">
               <div className="generation-chip">✦ {generationMeta.provider.toUpperCase()} • {generationMeta.model} • Khóa {generationMeta.keySlot}</div>
-              {khbdTemplateFile && <div className="template-result-note"><b>Chế độ tạo KHBD mới từ KHBD cũ:</b> Hệ thống sao chép toàn bộ hoạt động, bảng, hình ảnh, đầu trang và chân trang của tài liệu cũ; sau đó chèn từng câu dẫn năng lực vào hoạt động phù hợp. Nút “Tải KHBD mới” trả về tệp DOCX hoàn chỉnh.</div>}
+              {integration && <article className="document-preview integration-report">
+                <h2>{blockText.part1}</h2>
+                <table className="integration-plan-table"><thead><tr>{blockText.columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>
+                  {integration.integrationPlan.map((row, index) => <tr key={`${index}-${row.activity}`}><td>{row.activity}</td><td>{row.content}</td><td>{row.digitalCode}</td><td>{row.aiCode}</td><td>{row.product}</td><td>{row.ethicsNote}</td></tr>)}
+                </tbody></table>
+
+                {integration.objectiveLines.length > 0 && <section><h3>Chèn vào I. MỤC TIÊU</h3><ul>{integration.objectiveLines.map((line, index) => <li key={`${index}-${line}`}>{line}</li>)}</ul></section>}
+
+                <section><h3>Các khối sẽ chèn vào giáo án gốc</h3>
+                  {integration.blocks.map((entry) => <div className="integration-target" key={entry.anchorId}>
+                    <h4>{entry.activityTitle}</h4>
+                    <p className="integration-placement">Vị trí chèn: {outlinePreview.find((activity) => activity.id === entry.anchorId)?.placement === "cuoi-hoat-dong" ? "cuối hoạt động" : "ngay sau Bước 2"}</p>
+                    {renderIntegrationBlock(entry.block, entry.anchorId)}
+                  </div>)}
+                </section>
+
+                {integration.skipped.length > 0 && <section className="integration-skipped"><h3>Hoạt động không chèn</h3><ul>
+                  {integration.skipped.map((item) => <li key={item.id}>{item.title} — {item.reason === "da-co-khoi" ? "đã có sẵn khối tích hợp trong giáo án gốc" : "không dò được vị trí Bước 2, cần chèn thủ công để tránh chèn sai chỗ"}</li>)}
+                </ul></section>}
+
+                {integration.selfCheck.length > 0 && <section className="self-check-section"><h3>{blockText.selfCheck}</h3><ul>
+                  {integration.selfCheck.map((item, index) => <li key={`${index}-${item.label}`}>{item.passed ? "✔" : "✘"} {item.label}{item.note ? ` — ${item.note}` : ""}</li>)}
+                </ul></section>}
+              </article>}
+              {khbdTemplateFile && !integration && <div className="template-result-note"><b>Chế độ B — chỉ chèn tích hợp:</b> Hệ thống đọc cấu trúc giáo án gốc, xác định từng hoạt động và vị trí Bước 2, rồi chỉ chèn thêm nội dung tích hợp. Bấm “Tạo” để xem trước phần sẽ chèn.</div>}
               {editingPlan && <div className="editing-hint">✎ Chế độ chỉnh sửa đang bật — Thầy/Cô có thể nhấp vào nội dung bên dưới để sửa trực tiếp trước khi in hoặc tải Word.</div>}
               <article ref={documentRef} className={`document-preview ${editingPlan ? "is-editing" : ""}`} contentEditable={editingPlan} suppressContentEditableWarning>
                 {(plan.integrationPlan?.length || 0) > 0 && <section className="integration-plan-section">
@@ -981,9 +1114,10 @@ export default function Home() {
                 </section>}
                 <header><p>{form.school || (englishDocument ? "SCHOOL: ................................................" : "TRƯỜNG: ................................................")}</p><p><b>{docText.teacher}:</b> {form.teacher}</p><h2>{docText.lessonPlan}</h2><h1>{plan.title}</h1><div><span><b>{docText.subject}:</b> {englishDocument ? "English" : form.subject}</span><span><b>{docText.grade}:</b> {form.grade}</span><span><b>{docText.duration}:</b> {form.periods} {docText.periods}</span></div></header>
                 <section><p className="plan-summary">{plan.summary}</p><h3>{docText.objectives}</h3><h4>{docText.knowledge}</h4><ul>{plan.objectives.knowledge.map((item) => <li key={item}>{item}</li>)}</ul><h4>{docText.generalCompetencies}</h4><ul>{plan.objectives.generalCompetencies.map((item) => <li key={item}>{item}</li>)}</ul><h4>{docText.specificCompetencies}</h4><ul>{plan.objectives.specificCompetencies.map((item) => <li key={item}>{item}</li>)}</ul>
-                  {(plan.digitalCompetencyIndicators?.length || 0) > 0 && <div className="competency-panel digital"><h4>4. {docText.digital}</h4><p className="competency-source">{docText.digitalSource}</p><table><thead><tr><th>{englishDocument ? "Indicator code" : "Mã chỉ báo"}</th><th>{englishDocument ? "Expected outcome" : "Yêu cầu cần đạt"}</th></tr></thead><tbody>{plan.digitalCompetencyIndicators!.map((item) => <tr key={`digital-${item.code}`}><td><b>{item.code}</b></td><td>{item.indicator}</td></tr>)}</tbody></table></div>}
-                  {(plan.aiCompetencyIndicators?.length || 0) > 0 && <div className="competency-panel ai"><h4>{(plan.digitalCompetencyIndicators?.length || 0) > 0 ? "5" : "4"}. {docText.ai}</h4><p className="competency-source">{docText.aiSource}</p><table><thead><tr><th>{englishDocument ? "Outcome code" : "Mã YCCĐ"}</th><th>{englishDocument ? "Expected outcome" : "Yêu cầu cần đạt"}</th></tr></thead><tbody>{plan.aiCompetencyIndicators!.map((item) => <tr key={`ai-${item.code}`}><td><b>{item.code}</b></td><td>{item.indicator}</td></tr>)}</tbody></table></div>}
-                  <h4>{4 + Number((plan.digitalCompetencyIndicators?.length || 0) > 0) + Number((plan.aiCompetencyIndicators?.length || 0) > 0)}. {docText.qualities}</h4><ul>{plan.objectives.qualities.map((item) => <li key={item}>{item}</li>)}</ul>
+                  {((plan.digitalCompetencyIndicators?.length || 0) > 0 || (plan.aiCompetencyIndicators?.length || 0) > 0) && <h4>4. {englishDocument ? "Digital and AI competences" : "Năng lực số & AI"}</h4>}
+                  {(plan.digitalCompetencyIndicators?.length || 0) > 0 && <div className="competency-panel digital"><h4>{docText.digital}</h4><p className="competency-source">{docText.digitalSource}</p><table><thead><tr><th>{englishDocument ? "Indicator code" : "Mã chỉ báo"}</th><th>{englishDocument ? "Expected outcome" : "Yêu cầu cần đạt"}</th></tr></thead><tbody>{plan.digitalCompetencyIndicators!.map((item) => <tr key={`digital-${item.code}`}><td><b>{item.code}</b></td><td>{item.indicator}</td></tr>)}</tbody></table></div>}
+                  {(plan.aiCompetencyIndicators?.length || 0) > 0 && <div className="competency-panel ai"><h4>{docText.ai}</h4><p className="competency-source">{docText.aiSource}</p><table><thead><tr><th>{englishDocument ? "Outcome code" : "Mã YCCĐ"}</th><th>{englishDocument ? "Expected outcome" : "Yêu cầu cần đạt"}</th></tr></thead><tbody>{plan.aiCompetencyIndicators!.map((item) => <tr key={`ai-${item.code}`}><td><b>{item.code}</b></td><td>{item.indicator}</td></tr>)}</tbody></table></div>}
+                  <h4>{4 + Number((plan.digitalCompetencyIndicators?.length || 0) > 0 || (plan.aiCompetencyIndicators?.length || 0) > 0)}. {docText.qualities}</h4><ul>{plan.objectives.qualities.map((item) => <li key={item}>{item}</li>)}</ul>
                 </section>
                 <section><h3>{docText.equipment}</h3><ul>{plan.equipment.map((item) => <li key={item}>{item}</li>)}</ul>{(plan.teachingMethods?.length || 0) > 0 && <><h4>{docText.methods}</h4><ul>{plan.teachingMethods!.map((item) => <li key={item}>{item}</li>)}</ul></>}</section>
                 <section><h3>{docText.procedure}</h3>{plan.activities.map((activity) => <div className="activity-block" key={`${activity.code}-${activity.title}`}>
