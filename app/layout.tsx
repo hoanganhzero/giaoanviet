@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   icons: {
     icon: [{ url: "/brand-icon.png", type: "image/png" }],
     shortcut: "/brand-icon.png",
-    apple: "/brand-icon.png",
+    apple: "/icons/icon-192.png",
   },
   openGraph: {
     title: "Tạo Giáo Án Việt",
