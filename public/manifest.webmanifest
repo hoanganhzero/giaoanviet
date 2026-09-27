@@ -1,0 +1,20 @@
+{
+  "id": "/",
+  "name": "Giáo án Việt",
+  "short_name": "Giáo án Việt",
+  "description": "Nền tảng tạo kế hoạch bài dạy và PPCT",
+  "lang": "vi",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f0fdfa",
+  "theme_color": "#0f766e",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
