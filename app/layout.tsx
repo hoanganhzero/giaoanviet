@@ -1,3 +1,4 @@
+import PwaRegister from "./pwa-register";
 import type { Metadata } from "next";
 import "@fontsource/be-vietnam-pro/400.css";
 import "@fontsource/be-vietnam-pro/500.css";
@@ -8,6 +9,8 @@ import "@fontsource/be-vietnam-pro/900.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  applicationName: "Giáo án Việt",
+  manifest: "/manifest.webmanifest",
   metadataBase: new URL("https://khbd.giaovienso.id.vn"),
   title: "Tạo Giáo Án Việt | Nền tảng giáo án số",
   description: "Nền tảng tạo KHBD và PPCT tích hợp Năng lực số, Trí tuệ nhân tạo dành cho giáo viên Việt Nam.",
@@ -41,6 +44,7 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body>
+        <PwaRegister />
         {children}
         <div
           aria-label="Phiên bản AI Engine"
